@@ -1,0 +1,30 @@
+{
+    "rg": {
+        "mandatory": true
+    },
+    "assinatura": {
+        "is_entity": false,
+        "mandatory": true
+    },
+    "polegar": {
+        "is_entity": false,
+        "mandatory": true,
+        "extend_corner": ["bottom", "right"]
+    },
+    "dataexp": {},
+    "regcivil": {},
+    "cpf": {},
+    "dni": {},
+    "te": {},
+    "ctps": {},
+    "serie": {},
+    "uf": {},
+    "pis": {},
+    "profissional": {},
+    "cnh": {},
+    "cns": {},
+    "militar": {},
+    "other": {
+        "is_entity": false
+    }
+}
