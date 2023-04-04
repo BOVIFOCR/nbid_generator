@@ -2,6 +2,8 @@ import cv2
 import torch
 from torchvision import transforms
 
+import sys
+sys.path.append("..")
 from gan_model.utils import poisson_blend
 
 from defs.geometry import Rectifier
