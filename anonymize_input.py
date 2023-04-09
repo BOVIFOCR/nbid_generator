@@ -18,42 +18,13 @@ import torch.multiprocessing as mp
 import pandas as pd
 import numpy as np
 
-from logging_cfg import logging
+from utils.logging_cfg import logging
 
 from utils import inpainting, paths
 from gan_model.models import CompletionNetwork
 
 from defs.geometry import Polygon2D, Rectifier
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--sample-label", default="front", type=str,
-    choices=list(map(str, paths.SampleLabel.__members__.values()))
-)
-parser.add_argument(
-    "--device", default="cpu", type=str, choices=["cpu", "gpu"])
-
-parser.add_argument("--max-num-samples", type=int, default=None)
-parser.add_argument("--max-width", default=1920)
-parser.add_argument("--num-max-procs", default=32)
-parser.add_argument("--job-chunksize", default=8)
-parser.add_argument("--keep-transcripts", action="store_true")
-args = parser.parse_args()
-
-
-synth_dir = paths.SynthesisDir(args.sample_label)
-
-device_idx = args.device
-if device_idx == None:
-    device = torch.device("cpu")
-else:
-    device = torch.device(f"cuda:{device_idx}")
-
-sample_df = pd.read_csv(
-    synth_dir.path_input_base / 'sample.via.csv',
-    usecols=('filename', 'doc_polygon'))
-entities = json.loads((
-    synth_dir.path_input_base / 'entities.json').read_text())
 
 
 def resize_image(img, max_width=None):
@@ -96,13 +67,13 @@ def load_annotations(labels_fpath, rescale=None, rectifier=None):
             json_arq[idx]["region_shape_attributes"]["all_points_y"] = [pt[1] for pt in pts]
     return json_arq
 
-def load_gan_model():
+def load_gan_model(gan_cfg):
     gan = CompletionNetwork()
-    gan.load_state_dict(torch.load("./src/gan_model/model_cn", map_location=device))
+    gan.load_state_dict(torch.load(gan_cfg["gan-dir"], map_location=gan_cfg["device"]))
 
-    with open("./src/gan_model/config.json", "r") as f:
-        config = json.load(f)
-    mpv = torch.tensor(config["mpv"]).view(3, 1, 1).to(device)
+    with open(gan_cfg["gan-cfg-dir"], "r") as f:
+        detailed_gan_config = json.load(f)
+    mpv = torch.tensor(detailed_gan_config["mpv"]).view(3, 1, 1).to(gan_cfg["device"])
 
     return gan, mpv
 
@@ -115,7 +86,7 @@ def chunk(sequence, chunksize):
         sub_chunk = list(islice(sequence, chunksize))
 
 
-def process_single(img_spath, gan, mpv):
+def process_single(img_spath, max_width, gan, mpv):
     try:
         logging.info(f"Processing {img_spath}")
 
@@ -134,7 +105,7 @@ def process_single(img_spath, gan, mpv):
         assert rectifier.H is not None
 
         img = rectifier.rectify()
-        img, scale = resize_image(img, max_width=args.max_width)
+        img, scale = resize_image(img, max_width=max_width)
 
         # Loads and resizes annotations, storing it as .bg.json
         labels_fpath = img_spath.labels_fpath()
@@ -223,9 +194,16 @@ def process_single(img_spath, gan, mpv):
         raise e
 
 
-def process_list(img_spath_list, gan, mpv):
-    for img_spath in img_spath_list:
-        process_single(img_spath, gan, mpv)
+def process_list(cfg, sdir, input_list, gan, mpv):
+    global sample_df, entities
+    sample_df = pd.read_csv(
+        sdir.path_input_base / 'sample.via.csv',
+        usecols=('filename', 'doc_polygon'))
+    entities = json.loads((
+        sdir.path_input_base / 'entities.json').read_text())
+
+    for img_spath in input_list:
+        process_single(img_spath, cfg["max-width"], gan, mpv)
 
 
 def wait_for_job_completion(jobs: typing.List[mp.Process], wait_period=0.25):
@@ -236,12 +214,19 @@ def wait_for_job_completion(jobs: typing.List[mp.Process], wait_period=0.25):
         time.sleep(wait_period)
 
 
-def process_parallel(input_list, gan, mpv):
+def process_parallel(cfg, synth_dir, gan, mpv):
+    # loads input data
+    input_list = list(synth_dir.list_input_images(
+        for_anon=True, randomize=True))[:cfg["num-max-samples"]]
+    logging.info((
+        f"Finished loading {len(input_list)} ",
+        "images for anonimization"))
+
     # sets multiprocessing via torch
     num_input_items = len(input_list)
-    num_procs = min(args.num_max_procs, num_input_items)
+    num_procs = min(cfg["num-max-procs"], num_input_items)
     job_chunksize = min(
-        args.job_chunksize, math.ceil(num_input_items / num_procs))
+        cfg["job-chunksize"], math.ceil(num_input_items / num_procs))
 
     mp.set_start_method("spawn")
     torch.set_num_threads(1)
@@ -262,7 +247,7 @@ def process_parallel(input_list, gan, mpv):
                 logging.debug("Waiting for a job to complete")
                 finished_job_id = wait_for_job_completion(jobs)
                 jobs[finished_job_id].close()
-            job = mp.Process(target=process_list, args=[input_chunk, gan, mpv])
+            job = mp.Process(target=process_list, args=[cfg, synth_dir, input_chunk, gan, mpv])
             job.start()
             jobs.append(job)
         logging.info(f"Joining all {len(jobs)} jobs")
@@ -276,26 +261,43 @@ def process_parallel(input_list, gan, mpv):
             "To exit, stop with <CTRL+Z>, and terminate with `kill %1`")))
 
 
-def main():
-    gan, mpv = load_gan_model()
+def anonymize_dir(cfg, synth_dir):
+    gan, mpv = load_gan_model(cfg["gan-config"])
 
-    # loads input data
-    input_list = list(synth_dir.list_input_images(
-        for_anon=True, randomize=True))[:args.max_num_samples]
-    logging.info((
-        f"Finished loading {len(input_list)} ",
-        "images for anonimization"))
-
-    if os.environ.get("SINGLE_THREAD"):
+    if not cfg["exec-parallel"]:
         logging.info("Executing serially")
-        process_list(input_list, gan, mpv)
+        
+        # loads input data
+        input_list = list(synth_dir.list_input_images(
+            for_anon=True, randomize=True))[:cfg["num-max-samples"]]
+        logging.info((
+            f"Finished loading {len(input_list)} ",
+            "images for anonimization"))
+
+        process_list(input_list, cfg, synth_dir, gan, mpv)
     else:
-        process_parallel(input_list, gan, mpv)
+        process_parallel(cfg, synth_dir, gan, mpv)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', '-c', default='./config.json')
+    parser.add_argument(
+        "--sample-label", default="front", type=str,
+        choices=list(map(str, paths.SampleLabel.__members__.values()))
+    )
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.config):
+        print(f"\"{args.config}\" is not a readable file.")
+
+    with open(args.config) as f:
+        cfg = json.load(f)
+    
+    synth_dir = paths.SynthesisDir(args.sample_label)
+
     try:
-        main()
+        anonymize_dir(cfg)
     except BdbQuit:
         logging.error(f"Leaving for {BdbQuit}")
         os._exit(-2)

@@ -13,14 +13,14 @@ import cv2 as cv
 from PIL import Image, ImageDraw, ImageFont
 
 from utils import class_pessoa
-import polygon_functions
+# import polygon_functions
 
-from logging_cfg import logging
+from utils.logging_cfg import logging
 
 
 logging.getLogger("PIL.Image").setLevel(logging.CRITICAL+1)
 
-entities = json.loads(Path('files/entities.json').read_text())
+# entities = json.loads(Path('files/entities.json').read_text())
 
 
 # TODO: estimate these heights from annotation

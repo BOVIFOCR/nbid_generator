@@ -9,8 +9,8 @@ from doc_ock.mp_lock import mp_lock
 from utils import paths
 import text_2_image
 
-from annotation_utils import load_annotations
-from logging_cfg import logging
+from anonymize_input import load_annotations
+from utils.logging_cfg import logging
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--sample-label', default='front', choices=paths.SampleLabel.__members__.values())
@@ -34,20 +34,20 @@ def process_main(input_fpath):
         )))
         raise e
 
-
-try:
-    synth_dir = paths.SynthesisDir(args.sample_label)
-    fnames = list(synth_dir.list_input_images())
-    if os.environ.get("SINGLE_THREAD"):
-        logging.info("Executing serially")
-        [process_main(input_fpath) for input_fpath in fnames]
-    else:
-        n = min(args.num_max_procs, len(fnames))
-        mp_lock(
-            fnames, process_main, save_callback=None, num_procs=n,
-            out_path=(synth_dir.path_mpout / "synthesize_bgs").as_posix()
-        )
-except KeyboardInterrupt:
-    exit(-1)
-except BdbQuit:
-    os._exit(-1)
+def inpaint_dir(synth_dir):
+    try:
+        # synth_dir = paths.SynthesisDir(args.sample_label)
+        fnames = list(synth_dir.list_input_images())
+        if os.environ.get("SINGLE_THREAD"):
+            logging.info("Executing serially")
+            [process_main(input_fpath) for input_fpath in fnames]
+        else:
+            n = min(args.num_max_procs, len(fnames))
+            mp_lock(
+                fnames, process_main, save_callback=None, num_procs=n,
+                out_path=(synth_dir.path_mpout / "synthesize_bgs").as_posix()
+            )
+    except KeyboardInterrupt:
+        exit(-1)
+    except BdbQuit:
+        os._exit(-1)

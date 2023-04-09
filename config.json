@@ -1,0 +1,16 @@
+{
+    "samples": ["front", "back"],
+    "device": "cpu",
+    "num-max-samples": 1,
+    "exec-parallel": true,
+    "max-width": 1920,
+    "num-max-procs": 32,
+    "job-chunksize": 8,
+    "keep-transcripts": true,
+
+    "gan-config": {
+        "device": "cpu",
+        "gan-dir": "./gan_model/model_cn_step90000",
+        "gan-cfg-dir": "./gan_model/config.json"
+    }
+}

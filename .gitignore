@@ -8,8 +8,10 @@
 synthesis_input/*/**
 !synthesis_input/*/entities.json
 synthesis_output
+dump/
 
 *.log
 *.bak/
 
 gan_model/model_cn*
+lib/*
