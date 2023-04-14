@@ -1,4 +1,7 @@
 {
+    "device": "cpu",
+    "init_model_cn": "./gan_model/model_cn_step90000",
+
     "alpha": 0.0004,
     "arc": "celeba",
     "bdivs": 1,
@@ -11,7 +14,6 @@
     "hole_min_h": 48,
     "hole_min_w": 48,
     "init_model_cd": null,
-    "init_model_cn": null,
     "ld_input_size": 96,
     "max_holes": 1,
     "mpv": [

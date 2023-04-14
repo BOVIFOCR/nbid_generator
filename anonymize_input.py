@@ -67,12 +67,13 @@ def load_annotations(labels_fpath, rescale=None, rectifier=None):
             json_arq[idx]["region_shape_attributes"]["all_points_y"] = [pt[1] for pt in pts]
     return json_arq
 
-def load_gan_model(gan_cfg):
-    gan = CompletionNetwork()
-    gan.load_state_dict(torch.load(gan_cfg["gan-dir"], map_location=gan_cfg["device"]))
+def load_gan_model(gan_cfg_dir):
+    with open(gan_cfg_dir, "r") as f:
+        gan_cfg = json.load(f)
 
-    with open(gan_cfg["gan-cfg-dir"], "r") as f:
-        detailed_gan_config = json.load(f)
+    gan = CompletionNetwork()
+    gan.load_state_dict(torch.load(gan_cfg["init_model_cn"], map_location=gan_cfg["device"]))
+
     mpv = torch.tensor(detailed_gan_config["mpv"]).view(3, 1, 1).to(gan_cfg["device"])
 
     return gan, mpv

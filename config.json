@@ -8,9 +8,5 @@
     "job-chunksize": 8,
     "keep-transcripts": true,
 
-    "gan-config": {
-        "device": "cpu",
-        "gan-dir": "./gan_model/model_cn_step90000",
-        "gan-cfg-dir": "./gan_model/config.json"
-    }
+    "gan-config": "./gan_model/config.json"
 }
