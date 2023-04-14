@@ -1,8 +1,39 @@
+#pylint: disable=C0103
+#pylint: disable=C0115
+#pylint: disable=C0116
+#pylint: disable=E1102
+
+'''
+Auxiliary file for loading GAN model
+
+Author: Luiz Coelho
+Data: April 2023
+'''
+
+import json
+import torch
 import torch.nn as nn
 
+
+def load_gan_model():
+    '''
+    Load GAN model from binary file
+    '''
+    gan = CompletionNetwork()
+    gan.load_state_dict(torch.load("models/model_cn", map_location="cpu"))
+
+    with open("models/config.json", "r", encoding="utf-8") as file_handler:
+        config = json.load(file_handler)
+    mpv = torch.tensor(config["mpv"]).view(3, 1, 1).cpu()
+
+    return gan, mpv
+
 class Flatten(nn.Module):
+    '''
+    Flatten layer
+    '''
     def __init__(self):
-        super(Flatten, self).__init__()
+        super(nn.Module, self).__init__()
 
     def forward(self, x):
         return x.view(x.shape[0], -1)
@@ -202,7 +233,7 @@ class GlobalDiscriminator(nn.Module):
             self.linear7 = nn.Linear(in_features, 1024)
             self.act7 = nn.ReLU()
         else:
-            raise ValueError('Unsupported architecture \'%s\'.' % self.arc)
+            raise ValueError(f'Unsupported architecture \'{self.arc}\'.')
         # output_shape: (None, 1024)
 
     def forward(self, x):
@@ -236,6 +267,9 @@ class ContextDiscriminator(nn.Module):
         # output_shape: (None, 1)
 
     def forward(self, x):
+        """
+        Run network foward pass
+        """
         x_ld, x_gd = x
         x_ld = self.model_ld(x_ld)
         x_gd = self.model_gd(x_gd)
