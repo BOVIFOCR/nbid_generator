@@ -71,10 +71,12 @@ def load_gan_model(gan_cfg_dir):
     with open(gan_cfg_dir, "r") as f:
         gan_cfg = json.load(f)
 
-    gan = CompletionNetwork()
-    gan.load_state_dict(torch.load(gan_cfg["init_model_cn"], map_location=gan_cfg["device"]))
+    gan_dir = "/".join(gan_cfg_dir.split('/')[:-1]) + "/" + gan_cfg["init_model_cn"]
 
-    mpv = torch.tensor(detailed_gan_config["mpv"]).view(3, 1, 1).to(gan_cfg["device"])
+    gan = CompletionNetwork()
+    gan.load_state_dict(torch.load(gan_dir, map_location=gan_cfg["device"]))
+
+    mpv = torch.tensor(gan_cfg["mpv"]).view(3, 1, 1).to(gan_cfg["device"])
 
     return gan, mpv
 
