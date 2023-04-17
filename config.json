@@ -1,5 +1,6 @@
 {
     "samples": ["front", "back"],
+ 
     "device": "cpu",
     "num-max-samples": 1,
     "exec-parallel": true,
@@ -7,6 +8,7 @@
     "num-max-procs": 32,
     "job-chunksize": 8,
     "keep-transcripts": true,
+    "num-iters": 1,
 
     "gan-config": "./gan_model/config.json"
 }

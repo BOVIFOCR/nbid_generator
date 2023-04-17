@@ -9,8 +9,8 @@ import os
 def main(cfg):
     # samples = ['front', 'back']
 
-    input_dir = paths.SynthesisDir('front')
-    anonymize_dir(cfg, input_dir)
+    # input_dir = paths.SynthesisDir('front')
+    # anonymize_dir(cfg, input_dir)
 
     # inpaint_dir
 

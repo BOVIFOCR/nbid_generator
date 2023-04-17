@@ -130,7 +130,7 @@ class SynthesisDir():
             random.shuffle(fnames)
         for input_fpath in fnames:
             _, file_ext = input_fpath.sample_id(return_ext=True)
-
+    
             labels_file_exists = input_fpath.labels_fpath().exists()
             bg_labels_file_exists = Path(
                 str(input_fpath.labels_fpath()).replace(".json", ".bg.json")

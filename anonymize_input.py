@@ -300,7 +300,7 @@ if __name__ == "__main__":
     synth_dir = paths.SynthesisDir(args.sample_label)
 
     try:
-        anonymize_dir(cfg)
+        anonymize_dir(cfg, synth_dir)
     except BdbQuit:
         logging.error(f"Leaving for {BdbQuit}")
         os._exit(-2)
