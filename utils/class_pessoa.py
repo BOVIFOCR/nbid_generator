@@ -461,7 +461,7 @@ class Person:
         return text
     
     def set_fator_rh(self):
-        rn = random.randint(0, len(fator_rh.keys()))
+        rn = random.randint(0, len(fator_rh.keys())-1)
         rh = fator_rh[rn]
         self.rh.append(rh)
         return rh
