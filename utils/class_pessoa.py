@@ -9,6 +9,8 @@ import pandas as pd
 # TODO: FIXO obs e tipo_h, cargo, aspa, doar e org.
 tipo_h = {0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "AB"}
 
+fator_rh = {0: "A+", 1: "A-", 2: "B+", 3: "B-", 4: "O+", 5: "O-", 6: "AB+", 7: "AB-"}
+
 obs = {
     0: "EXERCE ATIVIDADE REMUNERADA;",
     1: "A;",
@@ -90,6 +92,7 @@ class Person:
         self.obs = []
         self.cargo = []
         self.aspa = []
+        self.rh = []
 
     def set_nome(self, qtd_chars):
         file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
@@ -456,6 +459,17 @@ class Person:
         text = aspa[sel_num]
         self.aspa.append(text)
         return text
+    
+    def set_fator_rh(self):
+        rn = random.randint(0, len(fator_rh.keys()))
+        rh = fator_rh[rn]
+        self.rh.append(rh)
+        return rh
+
+    def get_fator_rh(self):
+        topo = self.rh.pop(0)
+        self.rh.append(topo)
+        return topo
 
     def get_nome(self):
         topo = self.nome.pop(0)

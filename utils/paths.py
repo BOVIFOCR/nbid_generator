@@ -94,7 +94,7 @@ class SynthesisDir():
     path_input_root = path_repo_root / "synthesis_input"
     path_output_root = path_repo_root / "synthesis_output"
 
-    def __init__(self, doc_side: SampleLabel, tmp_path=Path("/tmp")):
+    def __init__(self, doc_side: SampleLabel, tmp_path=Path("./tmp")):
         self.path_input_base = self.path_input_root / str(doc_side)
         self.path_output_base = self.path_output_root / str(doc_side)
 
@@ -107,8 +107,8 @@ class SynthesisDir():
 
         self.path_static = self.path_repo_root / "files"
 
-        self.path_mpout = tmp_path / "mplock_out"
-        self.path_mask = tmp_path / "synth_mask"
+        self.path_mpout = self.path_input_base / tmp_path / "mplock_out"
+        self.path_mask = self.path_input_base / tmp_path / "synth_mask"
 
         self.mkdirs()
 

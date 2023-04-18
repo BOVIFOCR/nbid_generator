@@ -20,7 +20,7 @@ from utils.logging_cfg import logging
 
 logging.getLogger("PIL.Image").setLevel(logging.CRITICAL+1)
 
-# entities = json.loads(Path('files/entities.json').read_text())
+entities = json.loads(Path('files/entities.json').read_text())
 
 
 # TODO: estimate these heights from annotation
@@ -36,7 +36,7 @@ height_dict = {
 def text_generator(tipo_texto, pessoa, control_text):
     qtd_chars = control_text
     text = ''
-    if tipo_texto in ('nome', 'nomePai', 'nomeMae'):
+    if tipo_texto in ('nome', 'nomePai', 'nomeMae', 'filiacao', 'filiacao1', 'filiacao2'):
         text = pessoa.set_nome(qtd_chars)
     elif tipo_texto == 's_nome':
         text = pessoa.set_s_nome()
@@ -44,20 +44,22 @@ def text_generator(tipo_texto, pessoa, control_text):
         text = pessoa.set_cpf()
     elif tipo_texto == 'rg':
         text = pessoa.set_rg()
-    elif tipo_texto in ['org', 'inst']:
+    elif tipo_texto in ['org', 'inst', 'orgaoexp']:
         text = pessoa.set_org()
     elif tipo_texto == 'est':
         text = pessoa.set_est()
     elif tipo_texto == 'city':
         text = pessoa.set_cid_est(qtd_chars)
-    elif tipo_texto == 'city-est':
+    elif tipo_texto in ['city-est', 'naturalidade']:
         text = pessoa.set_cid_est(qtd_chars)
     elif tipo_texto == 'rg_org_est':
         text = pessoa.set_rg_org_est()
-    elif tipo_texto == 'date':
+    elif tipo_texto in ['date', 'datanasc']:
         text = pessoa.set_data()
     elif tipo_texto == 'tipo_h':
         text = pessoa.set_tipo_h()
+    elif tipo_texto == 'rh':
+        text = pessoa.set_fator_rh()
     elif tipo_texto == 'n_9':
         text = pessoa.set_n_9(qtd_chars)
     elif tipo_texto == 'n_reg':
@@ -100,10 +102,10 @@ def text_generator(tipo_texto, pessoa, control_text):
         text = 'RG ANTERIOR'
     elif tipo_texto == 'naci':
         text = 'BRASILEIRA'
-    elif tipo_texto == 'serial?':
+    elif tipo_texto in ['serial?', 'serial']:
         text = f"{''.join(map(str, (random.randint(0, 8) for _ in range(4))))}-{random.randint(0, 8)}"
 
-    elif tipo_texto == 'cod-sec':
+    elif tipo_texto in ['cod-sec', 'codsec']:
         text = secrets.token_hex(4).upper()
     return text
 
@@ -163,6 +165,7 @@ def text_mask_generator(json_arq, img_spath):
     if regions is not None:
         qtd_regions = len(regions)
         for aux in range(qtd_regions):
+            print(regions[aux])
             mask_open = Image.open(synth_dir.path_mask / mask_name)
 
             tag = regions[aux]['region_attributes']['tag']
@@ -206,6 +209,7 @@ def text_mask_generator(json_arq, img_spath):
                     height = int(bimg_height * height_dict[tipo_texto] / 100)
 
                 qtd_chars = med_text_area(width, height)
+                print(font_type)
                 font = ImageFont.truetype(font_type, height)
                 text = text_generator(tipo_texto, p1, control_text=qtd_chars)
                 ImageDraw.Draw(mask_open).text(
@@ -271,7 +275,7 @@ def write_txt_file(txt_name, area_n_text, synth_dir):
         width = element[2]
         height = element[3]
         tag = element[5]
-        if not entities[tag]['is_entity']:
+        if "is_entity" in entities[tag] and not entities[tag]["is_entity"]:
             continue
         transcription = entities[tag].get('transcript', element[4])
         if width == -1 and height == -1:

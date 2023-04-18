@@ -35,7 +35,6 @@ def synthesize_dir(cfg, synth_dir):
 
     try:
         fnames = list(synth_dir.list_input_images())
-        print(fnames, synth_dir.path_input)
         if os.environ.get("SINGLE_THREAD"):
             logging.info("Executing serially")
             [process_main(input_fpath) for input_fpath in fnames]
