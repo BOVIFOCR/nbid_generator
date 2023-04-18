@@ -1,3 +1,4 @@
-- possibly make a weighted name dictionary
+- make a weighted name dictionary
 - new font, move .ttf to files/
 - fix mp_lock on synthesizing
+- standardize field names
