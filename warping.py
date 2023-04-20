@@ -116,6 +116,8 @@ def warp_image_and_annotation(image, annotation_json: list):
     # Warp image
     image_warped, transform_matrix = warp_image(image, doc_coords)
     # Warp annotations
+    annotation_json[0]['region_shape_attributes']['width'] = image_warped.shape[1]
+    annotation_json[0]['region_shape_attributes']['height'] = image_warped.shape[0]
     for index, region in enumerate(annotation_json):
         if 'points' not in region['region_shape_attributes']:
             continue

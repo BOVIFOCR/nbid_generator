@@ -11,6 +11,8 @@ Data: April 2023
 import os
 import glob
 import json
+import re
+import copy
 import numpy as np
 import cv2
 
@@ -101,6 +103,40 @@ class Anonymizer():
                 return False
         return True
 
+    def anonymize_json(self, annotation_json):
+        '''
+        Remove information from transcription, keeping the text structure
+        Replace all letters for 'a' and replace all numbers for '0'
+        '''
+        letters_placeholder = 'a'
+        numbers_placeholder = '0'
+        for idx, region in enumerate(annotation_json):
+            if 'region_attributes' not in region:
+                continue
+            transcription = region['region_attributes']['transcription']
+            if isinstance(transcription, str):
+                anon_transcription = re.sub(r'(\w(?<!\d))', letters_placeholder, transcription)
+                anon_transcription = re.sub(r'\d', numbers_placeholder, anon_transcription)
+                annotation_json[idx]['region_attributes']['transcription'] = anon_transcription
+        return annotation_json
+
+    def save_annotation_json(self, annotation_json, annotation_path, save_path):
+        '''
+        Save json anonymized and warped
+        '''
+        anon_annotation_json = self.anonymize_json(annotation_json.copy())
+        for idx, region in enumerate(anon_annotation_json):
+            if 'region_shape_attributes' not in region:
+                continue
+            if 'points' not in region['region_shape_attributes']:
+                continue
+            points = region['region_shape_attributes']['points'].astype(int)
+            points = points.tolist()
+            anon_annotation_json[idx]['region_shape_attributes']['points'] = points
+        with open(os.path.join(save_path, os.path.basename(annotation_path)),
+                'w', encoding="utf-8") as file_handler:
+            json.dump(annotation_json , file_handler)
+
     def run(self):
         """
         Run anonimization on all files
@@ -137,39 +173,33 @@ class Anonymizer():
                                                         self.max_img_size)
 
         # Crop document and warp image
-        warped_image, annotation_json, warp_matrix = warp_image_and_annotation(image,
-                                                                annotation_json)
+        warped_annotation_json = copy.deepcopy(annotation_json)
+        warped_image, warped_annotation_json, warp_matrix = warp_image_and_annotation(image,
+                                                                warped_annotation_json)
         if warped_image is None:
             return None
-        #cv2.imwrite(os.path.join("warped_input/", os.path.basename(image_path)),
-        #            warped_image)
 
         # Create masked image
-        anonymization_mask = mask_fields(warped_image, annotation_json, self.fields)
+        anonymization_mask = mask_fields(warped_image, warped_annotation_json, self.fields)
         mask_full = np.zeros_like(anonymization_mask)
         mask_full = cv2.bitwise_or(mask_full, anonymization_mask)
-        #cv2.imwrite(os.path.join("masked_image/", os.path.basename(image_path)),
-        #            mask_full)
-        #image_masked = np.bitwise_and(warped_image, cv2.bitwise_not(mask_full)[..., np.newaxis])
-        #cv2.imwrite(os.path.join("masked_warped/", os.path.basename(image_path)),
-        #            image_masked)
 
         # Text field inpainting
         inpainted_warped = inpaint_gan(
                     warped_image, mask_full, self.gan, self.mpv)
-        cv2.imwrite(os.path.join("impainted_warped/", os.path.basename(image_path)),
-                    inpainted_warped)
 
         # Other region impainting (face, signature, thumb)
         for image_region in self.image_regions:
-            image_masked_region = mask_region(inpainted_warped, annotation_json,
+            image_masked_region = mask_region(inpainted_warped, warped_annotation_json,
                                                     image_region)
             inpainted_warped = inpaint_gan(
                         inpainted_warped, image_masked_region, self.gan, self.mpv)
-        cv2.imwrite(os.path.join(self.warped_dir, os.path.basename(image_path)),
-                    inpainted_warped)
 
         # Rewarping
         rewarped_full = rewarp_image(image, inpainted_warped, warp_matrix)
         cv2.imwrite(os.path.join(self.rewarped_dir, os.path.basename(image_path)),
                     rewarped_full)
+
+        # Save anonymized jsons
+        self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
+        self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
