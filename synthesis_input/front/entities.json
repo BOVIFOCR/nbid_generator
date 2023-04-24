@@ -15,19 +15,29 @@
       "mandatory": true
     },
     "naturalidade": {
+      "is_entity": true
     },
     "filiacao1": {
+      "is_entity": true
     },
     "filiacao2": {
+      "is_entity": true
     },
     "orgaoexp": {
+      "is_entity": true
     },
     "codsec": {
+      "is_entity": true
     },
     "serial": {
+      "is_entity": true
     },
-    "rh": {},
-    "obs": {},
+    "rh": {
+      "is_entity": true   
+    },
+    "obs": {
+      "is_entity": true
+    },
     "other": {
       "is_entity": false
     }

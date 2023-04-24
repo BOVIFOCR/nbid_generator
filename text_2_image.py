@@ -36,45 +36,27 @@ height_dict = {
 def text_generator(tipo_texto, pessoa, control_text):
     qtd_chars = control_text
     text = ''
-    if tipo_texto in ('nome', 'nomePai', 'nomeMae', 'filiacao', 'filiacao1', 'filiacao2'):
+    if tipo_texto in ('nome', 'filiacao1', 'filiacao2'):
         text = pessoa.set_nome(qtd_chars)
-    elif tipo_texto == 's_nome':
-        text = pessoa.set_s_nome()
     elif tipo_texto == 'cpf':
         text = pessoa.set_cpf()
     elif tipo_texto == 'rg':
         text = pessoa.set_rg()
-    elif tipo_texto in ['org', 'inst', 'orgaoexp']:
+    elif tipo_texto == 'orgaoexp':
         text = pessoa.set_org()
-    elif tipo_texto == 'est':
-        text = pessoa.set_est()
-    elif tipo_texto == 'city':
-        text = pessoa.set_cid_est(qtd_chars)
-    elif tipo_texto in ['city-est', 'naturalidade']:
+    elif tipo_texto in 'naturalidade':
         text = pessoa.set_cid_est(qtd_chars)
     elif tipo_texto == 'rg_org_est':
         text = pessoa.set_rg_org_est()
-    elif tipo_texto in ['date', 'datanasc']:
-        text = pessoa.set_data()
-    elif tipo_texto == 'tipo_h':
-        text = pessoa.set_tipo_h()
+    elif tipo_texto == 'datanasc':
+        text = pessoa.set_datanasc()
+    elif tipo_texto == 'dataexp':
+        text = pessoa.set_dataexp()
     elif tipo_texto == 'rh':
         text = pessoa.set_fator_rh()
-    elif tipo_texto == 'n_9':
-        text = pessoa.set_n_9(qtd_chars)
-    elif tipo_texto == 'n_reg':
-        text = pessoa.set_n_reg()
-    elif tipo_texto == 'n_11':
-        text = pessoa.set_n_11()
-    elif tipo_texto == 'cod_11':
-        text = pessoa.set_cod_11()
     elif tipo_texto == 'obs':
         text = pessoa.set_obs()
-    elif tipo_texto == 'cargo':
-        text = pessoa.set_cargo()
-    elif tipo_texto == 'comarca':
-        text = pessoa.set_d_orig()
-    elif tipo_texto == 'doc':
+    elif tipo_texto == 'reg_civil':
         text = pessoa.set_folha()
     elif tipo_texto == 'aspa':
         text = pessoa.set_aspa()
@@ -96,16 +78,9 @@ def text_generator(tipo_texto, pessoa, control_text):
         text = pessoa.set_n_via()
     elif tipo_texto == 'n_6':
         text = pessoa.set_n_6()
-    elif tipo_texto == 'per':
-        text = 'PERMISSÃO'
-    elif tipo_texto == 'rga':
-        text = 'RG ANTERIOR'
-    elif tipo_texto == 'naci':
-        text = 'BRASILEIRA'
-    elif tipo_texto in ['serial?', 'serial']:
+    elif tipo_texto == 'serial':
         text = f"{''.join(map(str, (random.randint(0, 8) for _ in range(4))))}-{random.randint(0, 8)}"
-
-    elif tipo_texto in ['cod-sec', 'codsec']:
+    elif tipo_texto == 'codsec':
         text = secrets.token_hex(4).upper()
     return text
 
@@ -175,7 +150,7 @@ def text_mask_generator(json_arq, img_spath):
                 tipo_texto = regions[aux]['region_attributes']['text_type']
 
                 font_color = (8, 8, 8)
-                if tipo_texto in ('nome', 'serial?', 'date'):
+                if tipo_texto in ('nome', 'serial', 'datanasc'):
                     font_type = (synth_dir.path_static / 'fonts' / 'tahoma' / 'tahoma-bold.ttf').as_posix()
                 else:
                     font_type = (synth_dir.path_static / 'fonts' / 'tahoma' / 'tahoma-3.ttf').as_posix()
@@ -209,7 +184,6 @@ def text_mask_generator(json_arq, img_spath):
                     height = int(bimg_height * height_dict[tipo_texto] / 100)
 
                 qtd_chars = med_text_area(width, height)
-                print(font_type)
                 font = ImageFont.truetype(font_type, height)
                 text = text_generator(tipo_texto, p1, control_text=qtd_chars)
                 ImageDraw.Draw(mask_open).text(

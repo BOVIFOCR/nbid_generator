@@ -59,6 +59,21 @@ org = {
 }
 # ------------------------------------------------------------------------------------------------------------------
 
+def gen_rand_datetime(min_time=datetime(1950,1,1,00,00,00), max_time=datetime.now()):
+    # Get total number of days between min and max time
+    total_days = (max_time - min_time).days
+    
+    # Generate random number of days in between
+    rand_days = random.randint(1, total_days-1)
+
+    # add rand_days to min date, generating rand date between min and max
+    new_time = min_time + timedelta(days=rand_days)
+    return new_time
+
+def time_to_str(timestr):
+    ret = timestr.strftime("%d/%m/%Y")
+    return ret
+
 
 class Person:
     def __init__(self):
@@ -82,7 +97,8 @@ class Person:
         self.cid = []
         self.local = []
         self.d_orig = []
-        self.data = []
+        self.dataexp = []
+        self.datanasc = []
         self.via = []
         self.n_via = []
         self.org = []
@@ -378,20 +394,21 @@ class Person:
         self.cod_11.append(seq_cod_11)
         return seq_cod_11
 
-    def set_data(self):
-        def gen_datetime(min_year=1950, max_year=datetime.now().year):
-            start = datetime(min_year, 1, 1, 00, 00, 00)
-            years = max_year - min_year + 1
-            end = start + timedelta(days=365 * years)
-            date_f = start + (end - start) * random.random()
-            return str(date_f)
+    def set_datanasc(self):
+        if len(self.dataexp) == 0:
+            unf_date = gen_rand_datetime()
+        else:
+            unf_date = gen_rand_datetime(min_time=self.get_dataexp())
+        self.datanasc.append(unf_date)
+        return time_to_str(unf_date)
 
-        full_data = gen_datetime().split(" ")
-        full_data = full_data[0].split("-")
-        date = full_data[2] + "/" + full_data[1] + "/" + full_data[0]
-
-        self.data.append(date)
-        return date
+    def set_dataexp(self):
+        if len(self.datanasc) == 0:
+            unf_date = gen_rand_datetime()
+        else:
+            unf_date = gen_rand_datetime(max_time=self.get_datanasc())
+        self.dataexp.append(unf_date)
+        return time_to_str(unf_date)
 
     def set_org(self):
         random.seed()
@@ -476,11 +493,6 @@ class Person:
         self.nome.append(topo)
         return topo
 
-    def get_s_nome(self):
-        topo = self.s_nome.pop(0)
-        self.s_nome.append(topo)
-        return topo
-
     def get_cpf(self):
         topo = self.cpf.pop(0)
         self.cpf.append(topo)
@@ -511,10 +523,15 @@ class Person:
         self.rg_org_est.append(topo)
         return topo
 
-    def get_data(self):
-        topo = self.data.pop(0)
-        self.data.append(topo)
-        return topo
+    def get_datanasc(self):
+        topo = self.datanasc.pop(0)
+        self.datanasc.append(topo)
+        return time_to_str(topo)
+
+    def get_dataexp(self):
+        topo = self.dataexp.pop(0)
+        self.dataexp.append(topo)
+        return time_to_str(topo)
 
     def get_tipo_h(self):
         topo = self.tipo_h.pop(0)
