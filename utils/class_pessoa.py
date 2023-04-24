@@ -41,6 +41,36 @@ obs = {
     26: "Z;",
 }
 
+ufs = {
+    'AC',
+    'AL',
+    'AM',
+    'AP',
+    'BA',
+    'CE',
+    'DF',
+    'ES',
+    'GO',
+    'MA',
+    'MT',
+    'MS',
+    'MG',
+    'PA',
+    'PB',
+    'PR',
+    'PE',
+    'PI',
+    'RJ',
+    'RS',
+    'RN',
+    'RO',
+    'RR',
+    'SC',
+    'SP',
+    'SE',
+    'TO'
+}
+
 cargo = {0: "DIRETOR", 1: "COORDENADOR", 2: "PRESIDENTE"}
 
 aspa = {0: "COM AVRB VIUVEZ", 1: "COM AVRB DIVÓRCIO"}
@@ -74,54 +104,99 @@ def time_to_str(timestr):
     ret = timestr.strftime("%d/%m/%Y")
     return ret
 
+def make_rg():
+    def formata_rg(n_rg):
+        rg_f = ""
+        for i in range(len(n_rg)):
+            rg_f = rg_f + n_rg[i]
+            if i in [1, 4]:
+                rg_f = rg_f + "."
+            elif i == 7:
+                rg_f = rg_f + "-"
+        return rg_f
+
+    def verf_rg(n_rg):
+        dig_v = str(random.randint(0, 9))
+        int_values = []
+        peso = 2
+        for i in range(len(n_rg)):
+            int_values.append(int(n_rg[i]) * (peso + i))
+        soma = sum(int_values)
+        for x in range(10):
+            result = soma + x * 100
+            if result % 11 == 0:
+                dig_v = str(x)
+                break
+        return dig_v
+
+    seq_rg = ""
+    for _ in range(8):
+        random.seed()
+        sel_num = random.randint(0, 9)
+        seq_rg = seq_rg + str(sel_num)
+    dig = verf_rg(seq_rg)
+    seq_rg = seq_rg + dig
+    seq_rg = formata_rg(seq_rg)
+    return seq_rg
+
+def make_nome(self):
+    file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
+    names = file.readlines()
+    full_name = ""
+    for _ in range(3):
+        random.seed()
+        sel_num = random.randint(0, len(names) - 1)
+        full_name = full_name + names[sel_num].rstrip("\n") + ""
+    full_name = full_name[:-1]
+    return full_name
+
+
 
 class Person:
     def __init__(self):
-        # RESOLVIDOS
-        self.nome = []
-        self.s_nome = []
-        self.cpf = []
-        self.rg = []
-        self.folha = []
-        self.pis = []
-        self.n_reg = []
-        self.n_5 = []
-        self.n_6 = []
-        self.n_9 = []
-        self.n_11 = []
-        self.cod_4 = []
-        self.cod_8 = []
-        self.cod_10 = []
-        self.cod_11 = []
-        self.est = []
-        self.cid = []
-        self.local = []
-        self.d_orig = []
-        self.dataexp = []
-        self.datanasc = []
-        self.via = []
-        self.n_via = []
-        self.org = []
-        self.rg_org_est = []
 
-        self.tipo_h = []
-        self.obs = []
-        self.cargo = []
-        self.aspa = []
-        self.rh = []
+        self.entities = {}
 
-    def set_nome(self, qtd_chars):
-        file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
-        names = file.readlines()
-        full_name = ""
-        for _ in range(3):
-            random.seed()
-            sel_num = random.randint(0, len(names) - 1)
-            full_name = full_name + names[sel_num].rstrip("\n") + ""
-        full_name = full_name[:-1]
-        if len(full_name) > qtd_chars:
-            full_name = full_name[:qtd_chars]
-        self.nome.append(full_name)
+        self.set_nome()
+        self.set_filiacao(1)
+        self.set_filiacao(2)
+        self.set_cpf()
+        self.set_rg()
+        self.set_cnh()
+
+        self.set_pis()
+        self.set_dni()
+        self.set_cid_est()
+        self.set_est()
+        self.set_cid()
+        self.set_d_orig()
+        self.set_data_nasc()
+        self.set_data_exp()
+        self.set_org()
+        self.set_obs()
+        self.set_fator_rh()
+        self.set_titulo()
+        self.set_militar()
+        self.set_profissional()
+        self.set_ctps()
+        self.set_serie()
+
+    def get_entity(tipo):
+        if tipo in self.entities:
+            return self.entities[tipo]
+        else:
+            return None
+
+    def set_nome(self):
+        self.entities['nome'] = make_nome()
+        return self.entities['nome']
+
+    def set_filiacao(self, num=1):
+        full_name = make_name()
+        if num == 1:
+            self.entities['filiacao1'] = full_name
+        else:
+            self.entities['filiacao2'] = full_name
         return full_name
 
     def set_cpf(self):
@@ -159,86 +234,13 @@ class Person:
             return seq_cpf
 
         r_cpf = make_cpf()
-        self.cpf.append(r_cpf)
+        self.entities['cpf'] = r_cpf
         return r_cpf
 
     def set_rg(self):
-        def formata_rg(n_rg):
-            rg_f = ""
-            for i in range(len(n_rg)):
-                rg_f = rg_f + n_rg[i]
-                if i in [1, 4]:
-                    rg_f = rg_f + "."
-                elif i == 7:
-                    rg_f = rg_f + "-"
-            return rg_f
-
-        def verf_rg(n_rg):
-            dig_v = str(random.randint(0, 9))
-            int_values = []
-            peso = 2
-            for i in range(len(n_rg)):
-                int_values.append(int(n_rg[i]) * (peso + i))
-            soma = sum(int_values)
-            for x in range(10):
-                result = soma + x * 100
-                if result % 11 == 0:
-                    dig_v = str(x)
-                    break
-            return dig_v
-
-        def make_rg():
-            seq_rg = ""
-            for _ in range(8):
-                random.seed()
-                sel_num = random.randint(0, 9)
-                seq_rg = seq_rg + str(sel_num)
-            dig = verf_rg(seq_rg)
-            seq_rg = seq_rg + dig
-            seq_rg = formata_rg(seq_rg)
-            return seq_rg
-
         r_rg = make_rg()
-        self.rg.append(r_rg)
+        self.entities['rg'] = r_rg
         return r_rg
-
-    def set_n_9(self, qtd_chars):
-        def verf_cnh_num_espelho(espelho):
-            int_values = []
-            peso = 10
-            for x in range(len(espelho)):
-                int_values.append(int(espelho[x]) * (peso - x))
-            soma = sum(int_values)
-            resto = soma % 11
-            dig = "0" if resto in [0, 1] else str(11 - resto)
-            return dig
-
-        def make_n_9():
-            seq_n_9 = ""
-            for _ in range(8):
-                random.seed()
-                sel_num = random.randint(0, 9)
-                seq_n_9 = seq_n_9 + str(sel_num)
-            dig_v = verf_cnh_num_espelho(seq_n_9)
-            seq_n_9 = seq_n_9 + dig_v
-            return seq_n_9
-
-        r_n_9 = make_n_9()
-        if len(r_n_9) > qtd_chars:
-            r_n_9 = r_n_9[:qtd_chars]
-        self.n_9.append(r_n_9)
-        return r_n_9
-
-    def set_folha(self):
-        c_nasc = "C.NAS="
-        livro = "LV="
-        lista = random.sample(range(1, 500), 3)
-        c_nasc = c_nasc + str(lista[0]) + " "
-        livro = livro + str(lista[1]) + " "
-        a_folha = "FL=" + str(lista[2])
-        final = c_nasc + livro + a_folha
-        self.folha.append(final)
-        return final
 
     def set_pis(self, qtd_chars):
         pis_pasep = ""
@@ -252,61 +254,13 @@ class Person:
                 pis_pasep = pis_pasep + "-"
         if len(pis_pasep) > qtd_chars:
             pis_pasep = pis_pasep[:qtd_chars]
-        self.pis.append(pis_pasep)
+        self.entities['pis'] = pis_pasep
         return pis_pasep
 
-    def set_n_5(self):
-        seq_n_5 = ""
-        for x in range(5):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_n_5 = seq_n_5 + str(sel_num)
-            if x == 3:
-                seq_n_5 = seq_n_5 + "-"
-        self.n_5.append(seq_n_5)
-        return seq_n_5
-
-    def set_n_6(self):
-        seq_n_6 = ""
-        for _ in range(5):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_n_6 = seq_n_6 + str(sel_num)
-        self.n_6.append(seq_n_6)
-        return seq_n_6
-
-    def set_cod_4(self):
-        seq_n_nh = "NH "
-        for _ in range(2):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_n_nh = seq_n_nh + str(sel_num)
-        self.cod_4.append(seq_n_nh)
-        return seq_n_nh
-
-    def set_cod_8(self):
-        seq_cod_8 = ""
-        for _ in range(7):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_cod_8 = seq_cod_8 + str(sel_num)
-        self.cod_8.append(seq_cod_8)
-        return seq_cod_8
-
-    def set_cod_10(self):
-        alfabeto = string.ascii_uppercase
-
-        random.seed()
-        sel_letra = random.randint(0, len(alfabeto) - 1)
-        seq_cod_10 = alfabeto[sel_letra]
-        for x in range(8):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_cod_10 = seq_cod_10 + str(sel_num)
-            if x == 2:
-                seq_cod_10 = seq_cod_10 + "-"
-        self.cod_10.append(seq_cod_10)
-        return seq_cod_10
+    def set_dni(self):
+        dni = "*****"
+        self.entities['dni'] = dni
+        return dni
 
     def set_est(self):
         random.seed()
@@ -314,7 +268,7 @@ class Person:
         sel_num = random.randint(0, df.shape[0] - 1)
 
         sel_est = df["UF"][sel_num].upper()
-        self.est.append(sel_est)
+        self.entities['uf'] = sel_est
         return sel_est
 
     def set_cid(self, qtd_chars):
@@ -330,7 +284,7 @@ class Person:
         else:
             sel_cid = "ITU"
 
-        self.cid.append(sel_cid)
+        self.entities['cid'] = sel_cid
         return sel_cid
 
     def set_cid_est(self, qtd_chars):
@@ -348,7 +302,7 @@ class Person:
         else:
             sel_local = "ITU-SP"
 
-        self.local.append(sel_local)
+        self.entities['local'] = sel_local
         return sel_local
 
     # TODO: Checar get_cid
@@ -360,270 +314,115 @@ class Person:
         sel_est = df["UF"].values[sel_num].upper()
 
         doc = "CMC= " + sel_cid + "-" + sel_est + " ,SEDE"
-        self.d_orig.append(doc)
+        self.entities['d_orig'] = doc
         return doc
 
-    def set_n_reg(self):
-        seq_n_reg = ""
-        for _ in range(11):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_n_reg = seq_n_reg + str(sel_num)
-        self.n_reg.append(seq_n_reg)
-        return seq_n_reg
-
-    def set_n_11(self):
-        seq_n_11 = ""
-        for _ in range(11):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_n_11 = seq_n_11 + str(sel_num)
-        self.n_11.append(seq_n_11)
-        return seq_n_11
-
-    def set_cod_11(self):
-        random.seed()
-        df = pd.read_csv(r"./files/cid_est.csv", encoding="utf-8")
-        sel_num = random.randint(0, df.shape[0] - 1)
-        seq_cod_11 = df["UF"][sel_num].upper()
-        for _ in range(9):
-            random.seed()
-            sel_num = random.randint(0, 9)
-            seq_cod_11 = seq_cod_11 + str(sel_num)
-
-        self.cod_11.append(seq_cod_11)
-        return seq_cod_11
-
     def set_datanasc(self):
-        if len(self.dataexp) == 0:
+        if not self.dataexp:
             unf_date = gen_rand_datetime()
         else:
             unf_date = gen_rand_datetime(min_time=self.get_dataexp())
-        self.datanasc.append(unf_date)
+        self.entities['datanasc'] = unf_date
         return time_to_str(unf_date)
 
     def set_dataexp(self):
-        if len(self.datanasc) == 0:
+        if not self.datanasc == 0:
             unf_date = gen_rand_datetime()
         else:
             unf_date = gen_rand_datetime(max_time=self.get_datanasc())
-        self.dataexp.append(unf_date)
+        self.entities['dataexp'] = unf_date
         return time_to_str(unf_date)
 
     def set_org(self):
         random.seed()
         sel_num = random.randint(0, len(org) - 1)
         text = org[sel_num]
-        self.org.append(text)
+        self.entities['orgaoexp'] = text
         return text
-
-    def set_rg_org_est(self):
-        random.seed()
-        sel_num = random.randint(0, len(org) - 1)
-        org_p = org[sel_num]
-
-        random.seed()
-        df = pd.read_csv(r"./files/cid_est.csv", encoding="utf-8")
-        sel_num_est = random.randint(0, len(df) - 1)
-        est_p = df["UF"][sel_num_est].upper()
-
-        rg_p = self.set_rg()
-
-        final = rg_p + " " + org_p + " " + est_p
-
-        self.rg_org_est.append(final)
-        return final
-
-    def set_via(self):
-        random.seed()
-        sel_num = random.randint(1, 9)
-        via_p = str(sel_num) + " VIA"
-        self.via.append(via_p)
-        return via_p
-
-    def set_n_via(self):
-        random.seed()
-        sel_num = random.randint(1, 9)
-        num_via = "0" + str(sel_num)
-        self.n_via.append(num_via)
-        return num_via
 
     def set_obs(self):
         text = ""
         random.seed()
         sel_num = random.randint(0, len(obs) - 1)
         text = obs[sel_num]
-        self.obs.append(text)
-        return text
-
-    def set_cargo(self):
-        random.seed()
-        sel_num = random.randint(0, len(cargo) - 1)
-        text = cargo[sel_num]
-        self.cargo.append(text)
-        return text
-
-    def set_tipo_h(self):
-        random.seed()
-        sel_num = random.randint(0, len(tipo_h) - 1)
-        text = tipo_h[sel_num]
-        self.tipo_h.append(text)
-        return text
-
-    def set_aspa(self):
-        random.seed()
-        sel_num = random.randint(0, 1)
-        text = aspa[sel_num]
-        self.aspa.append(text)
+        self.entities['obs'] = text
         return text
     
     def set_fator_rh(self):
         rn = random.randint(0, len(fator_rh.keys())-1)
         rh = fator_rh[rn]
-        self.rh.append(rh)
+        self.entities['rh'] = rh
         return rh
 
-    def get_fator_rh(self):
-        topo = self.rh.pop(0)
-        self.rh.append(topo)
-        return topo
+    def set_titulo(self):
+        # 1 out of 10
+        if not self.datanasc or ((self.datetime.now() - self.datanasc[0]).days//365) < 16 \
+                             or random.randint(0, 9) == 0:
+            titulo = "*****"
+        else:
+            titulo = "0"
+            for i in range(0, 12):
+                titulo += str(random.randint(0, 9))
+        self.entities['te'] = titulo
+        return titulo
 
-    def get_nome(self):
-        topo = self.nome.pop(0)
-        self.nome.append(topo)
-        return topo
+    def set_ctps(self):
+        # 1 out of 10
+        if not self.datanasc or ((self.datetime.now() - self.datanasc[0]).days//365) < 14 \
+                             or random.randint(0, 9) == 0 or not self.cpf:
+            ctps = "*****"
+        else:
+            ctps = self.cpf[0:7]
+        self.entities['ctps'] = ctps
+        return ctps
 
-    def get_cpf(self):
-        topo = self.cpf.pop(0)
-        self.cpf.append(topo)
-        return topo
+    def set_serie(self):
+        if not self.ctps or not self.cpf:
+            serie = "*****"
+        else:
+            serie = self.cpf[-4:]
+        self.entities['serie'] = serie
+        return serie
 
-    def get_rg(self):
-        topo = self.rg.pop(0)
-        self.rg.append(topo)
-        return topo
+    def set_cns(self):
+        if random.randint(0, 5) != 5: # 4 out of 5
+            cns = "*****"
+        else:
+            cns = ""
+            for i in range(0, 15):
+                cns += str(random.randint(0, 9))
+        self.entities['cns'] = cns
+        return cns
 
-    def get_org(self):
-        topo = self.org.pop(0)
-        self.org.append(topo)
-        return topo
+    def set_profissional(self):
+        if random.randint(0, 19) != 00: # 19 out of 20
+            profissional = "*****"
+        else:
+            if random.randint(0, 1) == 1:
+                preamb = "CREA"
+            else:
+                preamb = "CONFEA"
+            preamb = preamb + "/" + ufs[random.randint(0,len(ufs)-1)]
 
-    def get_est(self):
-        topo = self.est.pop(0)
-        self.est.append(topo)
-        return topo
+            profissional = preamb + " 0"
+            for i in range(0, 7):
+                profissional += str(random.randint(0, 9))
+                if i in (0, 3):
+                    profissional += "."
+        self.entities['profissional'] = profissional 
+        return profissional
 
-    def get_cid(self):
-        topo = self.cid.pop(0)
-        self.cid.append(topo)
-        return topo
+    def set_militar(self):
+        if random.randint(0, 9) != 0:
+            militar = "*****"
+        else:
+            militar = ""
+            for i in range(0, 7):
+                militar += str(random.randint(0, 9))
+        self.entities['militar'] = militar
+        return militar
 
-    def get_rg_org_est(self):
-        topo = self.rg_org_est.pop(0)
-        self.rg_org_est.append(topo)
-        return topo
-
-    def get_datanasc(self):
-        topo = self.datanasc.pop(0)
-        self.datanasc.append(topo)
-        return time_to_str(topo)
-
-    def get_dataexp(self):
-        topo = self.dataexp.pop(0)
-        self.dataexp.append(topo)
-        return time_to_str(topo)
-
-    def get_tipo_h(self):
-        topo = self.tipo_h.pop(0)
-        self.tipo_h.append(topo)
-        return topo
-
-    def get_n_reg(self):
-        topo = self.n_reg.pop(0)
-        self.n_reg.append(topo)
-        return topo
-
-    def get_n_9(self):
-        topo = self.n_9.pop(0)
-        self.n_9.append(topo)
-        return topo
-
-    def get_n_11(self):
-        topo = self.n_11.pop(0)
-        self.n_11.append(topo)
-        return topo
-
-    def get_cod_11(self):
-        topo = self.cod_11.pop(0)
-        self.cod_11.append(topo)
-        return topo
-
-    def get_local(self):
-        topo = self.local.pop(0)
-        self.local.append(topo)
-        return topo
-
-    def get_obs(self):
-        topo = self.obs.pop(0)
-        self.obs.append(topo)
-        return topo
-
-    def get_cargo(self):
-        topo = self.cargo.pop(0)
-        self.cargo.append(topo)
-        return topo
-
-    def get_via(self):
-        topo = self.via.pop(0)
-        self.via.append(topo)
-        return topo
-
-    def get_folha(self):
-        topo = self.folha.pop(0)
-        self.folha.append(topo)
-        return topo
-
-    def get_d_orig(self):
-        topo = self.d_orig.pop(0)
-        self.d_orig.append(topo)
-        return topo
-
-    def get_aspa(self):
-        topo = self.aspa.pop(0)
-        self.aspa.append(topo)
-        return topo
-
-    def get_cod_4(self):
-        topo = self.cod_4.pop(0)
-        self.cod_4.append(topo)
-        return topo
-
-    def get_pis(self):
-        topo = self.pis.pop(0)
-        self.pis.append(topo)
-        return topo
-
-    def get_n_5(self):
-        topo = self.n_5.pop(0)
-        self.n_5.append(topo)
-        return topo
-
-    def get_cod_10(self):
-        topo = self.cod_10.pop(0)
-        self.cod_10.append(topo)
-        return topo
-
-    def get_cod_8(self):
-        topo = self.cod_8.pop(0)
-        self.cod_8.append(topo)
-        return topo
-
-    def get_n_via(self):
-        topo = self.n_via.pop(0)
-        self.n_via.append(topo)
-        return topo
-
-    def get_n_6(self):
-        topo = self.n_6.pop(0)
-        self.n_6.append(topo)
-        return topo
+    def set_cnh(self):
+        cnh = make_rg()
+        self.entities['cnh'] = cnh
+        return cnh
