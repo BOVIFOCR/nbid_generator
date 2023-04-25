@@ -35,7 +35,7 @@ def synthesize_dir(cfg, synth_dir):
 
     try:
         fnames = list(synth_dir.list_input_images())
-        if os.environ.get("SINGLE_THREAD"):
+        if not cfg["exec-parallel"]:
             logging.info("Executing serially")
             [process_main(input_fpath) for input_fpath in fnames]
         else:
