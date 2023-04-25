@@ -3,7 +3,7 @@
  
     "device": "cpu",
     "num-max-samples": 1,
-    "exec-parallel": true,
+    "exec-parallel": false,
     "max-width": 1920,
     "num-max-procs": 32,
     "job-chunksize": 8,

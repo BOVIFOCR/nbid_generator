@@ -34,10 +34,17 @@ height_dict = {
 
 # Gera o texto a ser colocado na mask.
 def text_generator(tipo_texto, pessoa):
-    text = pessoa.get_entity(tipo_texto)
+    if tipo_texto == 'serial':
+        text = f"{''.join(map(str, (random.randint(0, 8) for _ in range(4))))}-{random.randint(0, 8)}"
+    elif tipo_texto == 'codsec':
+        text = secrets.token_hex(4).upper()
+    elif tipo_texto in entities and entities[tipo_texto]['is_entity']:
+        text = pessoa.get_entity(tipo_texto)
+    else:
+        text = ""
 
     if text is None:
-        raise ValueError("Entidade não reconhecida.")
+        raise ValueError("Entidade não reconhecida: " + tipo_texto)
 
     return text
 
@@ -97,14 +104,17 @@ def text_mask_generator(json_arq, img_spath, pessoa):
     if regions is not None:
         qtd_regions = len(regions)
         for aux in range(qtd_regions):
-            print(regions[aux])
+            tag = regions[aux]['region_attributes']['tag']
+            if tag not in entities or not entities[tag]['is_entity']:
+                continue
+
             mask_open = Image.open(synth_dir.path_mask / mask_name)
 
-            tag = regions[aux]['region_attributes']['tag']
             if regions[aux]['region_attributes']['info_type'] == 'p' and \
                     len(regions[aux]['region_attributes']) > 1:
 
-                tipo_texto = regions[aux]['region_attributes']['text_type']
+                # tipo_texto = regions[aux]['region_attributes']['name']
+                tipo_texto = tag
 
                 font_color = (8, 8, 8)
                 if tipo_texto in ('nome', 'serial', 'datanasc'):

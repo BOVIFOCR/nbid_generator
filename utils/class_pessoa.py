@@ -41,7 +41,7 @@ obs = {
     26: "Z;",
 }
 
-ufs = {
+ufs = [
     'AC',
     'AL',
     'AM',
@@ -69,7 +69,7 @@ ufs = {
     'SP',
     'SE',
     'TO'
-}
+]
 
 cargo = {0: "DIRETOR", 1: "COORDENADOR", 2: "PRESIDENTE"}
 
@@ -139,7 +139,7 @@ def make_rg():
     seq_rg = formata_rg(seq_rg)
     return seq_rg
 
-def make_nome(self):
+def make_name():
     file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
     names = file.readlines()
     full_name = ""
@@ -166,14 +166,15 @@ class Person:
 
         self.set_pis()
         self.set_dni()
-        self.set_cid_est()
+        self.set_cid_est(50)
         self.set_est()
-        self.set_cid()
+        self.set_cid(50)
         self.set_d_orig()
-        self.set_data_nasc()
-        self.set_data_exp()
+        self.set_datanasc()
+        self.set_dataexp()
         self.set_org()
         self.set_obs()
+        self.set_cns()
         self.set_fator_rh()
         self.set_titulo()
         self.set_militar()
@@ -181,14 +182,16 @@ class Person:
         self.set_ctps()
         self.set_serie()
 
-    def get_entity(tipo):
+    def get_entity(self, tipo):
         if tipo in self.entities:
+            if tipo in ('datanasc', 'dataexp'):
+                return time_to_str(self.entities[tipo])
             return self.entities[tipo]
         else:
             return None
 
     def set_nome(self):
-        self.entities['nome'] = make_nome()
+        self.entities['nome'] = make_name()
         return self.entities['nome']
 
     def set_filiacao(self, num=1):
@@ -242,7 +245,7 @@ class Person:
         self.entities['rg'] = r_rg
         return r_rg
 
-    def set_pis(self, qtd_chars):
+    def set_pis(self):
         pis_pasep = ""
         for x in range(11):
             random.seed()
@@ -252,8 +255,8 @@ class Person:
                 pis_pasep = pis_pasep + "."
             elif x == 9:
                 pis_pasep = pis_pasep + "-"
-        if len(pis_pasep) > qtd_chars:
-            pis_pasep = pis_pasep[:qtd_chars]
+        # if len(pis_pasep) > qtd_chars:
+        #     pis_pasep = pis_pasep[:qtd_chars]
         self.entities['pis'] = pis_pasep
         return pis_pasep
 
@@ -302,7 +305,7 @@ class Person:
         else:
             sel_local = "ITU-SP"
 
-        self.entities['local'] = sel_local
+        self.entities['naturalidade'] = sel_local
         return sel_local
 
     # TODO: Checar get_cid
@@ -314,22 +317,22 @@ class Person:
         sel_est = df["UF"].values[sel_num].upper()
 
         doc = "CMC= " + sel_cid + "-" + sel_est + " ,SEDE"
-        self.entities['d_orig'] = doc
+        self.entities['regcivil'] = doc
         return doc
 
     def set_datanasc(self):
-        if not self.dataexp:
+        if 'dataexp' not in self.entities:
             unf_date = gen_rand_datetime()
         else:
-            unf_date = gen_rand_datetime(min_time=self.get_dataexp())
+            unf_date = gen_rand_datetime(min_time=self.entities['dataexp'])
         self.entities['datanasc'] = unf_date
         return time_to_str(unf_date)
 
     def set_dataexp(self):
-        if not self.datanasc == 0:
+        if 'datanasc' not in self.entities:
             unf_date = gen_rand_datetime()
         else:
-            unf_date = gen_rand_datetime(max_time=self.get_datanasc())
+            unf_date = gen_rand_datetime(max_time=self.entities['datanasc'])
         self.entities['dataexp'] = unf_date
         return time_to_str(unf_date)
 
@@ -356,7 +359,8 @@ class Person:
 
     def set_titulo(self):
         # 1 out of 10
-        if not self.datanasc or ((self.datetime.now() - self.datanasc[0]).days//365) < 16 \
+        if 'datanasc' not in self.entities or \
+                    ((datetime.now() - self.entities['datanasc']).days//365) < 16 \
                              or random.randint(0, 9) == 0:
             titulo = "*****"
         else:
@@ -368,19 +372,22 @@ class Person:
 
     def set_ctps(self):
         # 1 out of 10
-        if not self.datanasc or ((self.datetime.now() - self.datanasc[0]).days//365) < 14 \
-                             or random.randint(0, 9) == 0 or not self.cpf:
+        if 'datanasc' not in self.entities or \
+                ((datetime.now() - self.entities['datanasc']).days//365) < 14 \
+                    or random.randint(0, 9) == 0 or 'cpf' not in self.entities:
             ctps = "*****"
         else:
-            ctps = self.cpf[0:7]
+            cpf = self.entities['cpf']
+            ctps = cpf[0:3] + cpf[4:7] + cpf[8]
         self.entities['ctps'] = ctps
         return ctps
 
     def set_serie(self):
-        if not self.ctps or not self.cpf:
+        if not 'ctps' not in self.entities or 'cpf' not in self.entities:
             serie = "*****"
         else:
-            serie = self.cpf[-4:]
+            cpf = self.entities['cpf']
+            serie = cpf[-5:-3] + cpf[-2:]
         self.entities['serie'] = serie
         return serie
 
