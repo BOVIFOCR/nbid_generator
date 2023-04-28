@@ -15,3 +15,5 @@ dump/
 
 gan_model/model_cn*
 lib/*
+tmp/*
+files/*

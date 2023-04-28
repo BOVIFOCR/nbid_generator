@@ -20,91 +20,32 @@ from utils.logging_cfg import logging
 
 logging.getLogger("PIL.Image").setLevel(logging.CRITICAL+1)
 
-# entities = json.loads(Path('files/entities.json').read_text())
+entities = json.loads(Path('files/entities.json').read_text())
 
 
 # TODO: estimate these heights from annotation
 height_dict = {
     'nome': 4.6,
-    'nomePai': 3.6, 'nomeMae': 3.6,
+    'filiacao1': 3.6, 'filiacao2': 3.6,
     'date': 3.1, 'city-est': 3.1,
-    'serial?': 3.5, 'cod-sec': 2.9
+    'serial': 3.5, 'cod-sec': 2.9
 }
 
 
 # Gera o texto a ser colocado na mask.
-def text_generator(tipo_texto, pessoa, control_text):
-    qtd_chars = control_text
-    text = ''
-    if tipo_texto in ('nome', 'nomePai', 'nomeMae'):
-        text = pessoa.set_nome(qtd_chars)
-    elif tipo_texto == 's_nome':
-        text = pessoa.set_s_nome()
-    elif tipo_texto == 'cpf':
-        text = pessoa.set_cpf()
-    elif tipo_texto == 'rg':
-        text = pessoa.set_rg()
-    elif tipo_texto in ['org', 'inst']:
-        text = pessoa.set_org()
-    elif tipo_texto == 'est':
-        text = pessoa.set_est()
-    elif tipo_texto == 'city':
-        text = pessoa.set_cid_est(qtd_chars)
-    elif tipo_texto == 'city-est':
-        text = pessoa.set_cid_est(qtd_chars)
-    elif tipo_texto == 'rg_org_est':
-        text = pessoa.set_rg_org_est()
-    elif tipo_texto == 'date':
-        text = pessoa.set_data()
-    elif tipo_texto == 'tipo_h':
-        text = pessoa.set_tipo_h()
-    elif tipo_texto == 'n_9':
-        text = pessoa.set_n_9(qtd_chars)
-    elif tipo_texto == 'n_reg':
-        text = pessoa.set_n_reg()
-    elif tipo_texto == 'n_11':
-        text = pessoa.set_n_11()
-    elif tipo_texto == 'cod_11':
-        text = pessoa.set_cod_11()
-    elif tipo_texto == 'obs':
-        text = pessoa.set_obs()
-    elif tipo_texto == 'cargo':
-        text = pessoa.set_cargo()
-    elif tipo_texto == 'comarca':
-        text = pessoa.set_d_orig()
-    elif tipo_texto == 'doc':
-        text = pessoa.set_folha()
-    elif tipo_texto == 'aspa':
-        text = pessoa.set_aspa()
-    elif tipo_texto == 'via':
-        text = pessoa.set_via()
-    elif tipo_texto == 'pis':
-        text = pessoa.set_pis(qtd_chars)
-    elif tipo_texto == 'cod_4':
-        text = pessoa.set_cod_4()
-    elif tipo_texto == '5-code':
-        text = pessoa.set_n_5()
-    elif tipo_texto == 'cod_10':
-        text = pessoa.set_cod_10()
-    elif tipo_texto == 'cid':
-        text = pessoa.set_cid(qtd_chars)
-    elif tipo_texto == 'cod_8':
-        text = pessoa.set_cod_8()
-    elif tipo_texto == 'n_via':
-        text = pessoa.set_n_via()
-    elif tipo_texto == 'n_6':
-        text = pessoa.set_n_6()
-    elif tipo_texto == 'per':
-        text = 'PERMISSÃO'
-    elif tipo_texto == 'rga':
-        text = 'RG ANTERIOR'
-    elif tipo_texto == 'naci':
-        text = 'BRASILEIRA'
-    elif tipo_texto == 'serial?':
+def text_generator(tipo_texto, pessoa):
+    if tipo_texto == 'serial':
         text = f"{''.join(map(str, (random.randint(0, 8) for _ in range(4))))}-{random.randint(0, 8)}"
-
-    elif tipo_texto == 'cod-sec':
+    elif tipo_texto == 'codsec':
         text = secrets.token_hex(4).upper()
+    elif tipo_texto in entities and entities[tipo_texto]['is_entity']:
+        text = pessoa.get_entity(tipo_texto)
+    else:
+        text = ""
+
+    if text is None:
+        raise ValueError("Entidade não reconhecida: " + tipo_texto)
+
     return text
 
 
@@ -135,14 +76,14 @@ def localize_text_area(temp_mask_path):
 
 
 # Gera as demais masks.
-def text_mask_generator(json_arq, img_spath):
+def text_mask_generator(json_arq, img_spath, pessoa):
     synth_dir = img_spath.synth_dir
     img_fname = img_spath.name
     area_n_text = []
     bg_color = 'white'
     draw_anchor = None
     draw_align = 'center'
-    p1 = class_pessoa.Person()
+    p1 = pessoa
 
     with Image.open(str(synth_dir.path_input / img_fname)) as img:
         img_width, img_height = img.size
@@ -163,16 +104,20 @@ def text_mask_generator(json_arq, img_spath):
     if regions is not None:
         qtd_regions = len(regions)
         for aux in range(qtd_regions):
+            tag = regions[aux]['region_attributes']['tag']
+            if tag not in entities or not entities[tag]['is_entity']:
+                continue
+
             mask_open = Image.open(synth_dir.path_mask / mask_name)
 
-            tag = regions[aux]['region_attributes']['tag']
             if regions[aux]['region_attributes']['info_type'] == 'p' and \
                     len(regions[aux]['region_attributes']) > 1:
 
-                tipo_texto = regions[aux]['region_attributes']['text_type']
+                # tipo_texto = regions[aux]['region_attributes']['name']
+                tipo_texto = tag
 
                 font_color = (8, 8, 8)
-                if tipo_texto in ('nome', 'serial?', 'date'):
+                if tipo_texto in ('nome', 'serial', 'datanasc'):
                     font_type = (synth_dir.path_static / 'fonts' / 'tahoma' / 'tahoma-bold.ttf').as_posix()
                 else:
                     font_type = (synth_dir.path_static / 'fonts' / 'tahoma' / 'tahoma-3.ttf').as_posix()
@@ -207,7 +152,7 @@ def text_mask_generator(json_arq, img_spath):
 
                 qtd_chars = med_text_area(width, height)
                 font = ImageFont.truetype(font_type, height)
-                text = text_generator(tipo_texto, p1, control_text=qtd_chars)
+                text = text_generator(tipo_texto, p1)
                 ImageDraw.Draw(mask_open).text(
                     (min_x, min_y), text, font_color, anchor=draw_anchor, font=font, align=draw_align)
 
@@ -271,7 +216,7 @@ def write_txt_file(txt_name, area_n_text, synth_dir):
         width = element[2]
         height = element[3]
         tag = element[5]
-        if not entities[tag]['is_entity']:
+        if "is_entity" in entities[tag] and not entities[tag]["is_entity"]:
             continue
         transcription = entities[tag].get('transcript', element[4])
         if width == -1 and height == -1:
@@ -340,7 +285,8 @@ def mult_img(mask_name, img_spath, area_n_text, param):
 # Faz a função de main() desse arquivo.
 def control_mask_gen(img_spath, json_arq):
     inicio = time.time()
-    area_n_text = text_mask_generator(json_arq, img_spath)
+    pessoa = class_pessoa.Person()
+    area_n_text = text_mask_generator(json_arq, img_spath, pessoa)
     logging.debug(f"Execution time for mask gen: {str(time.time() - inicio)}")
     mult_img(
         f"mask_{img_spath.name}", img_spath, area_n_text=area_n_text, param=150)
