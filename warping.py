@@ -29,16 +29,16 @@ def resize_image_and_annotation(image, annotation_json: list, max_size: int):
     else:
         scale = 1
 
-    annotation_json[0]['region_shape_attributes']['width'] *= scale
-    annotation_json[0]['region_shape_attributes']['height'] *= scale
-    for idx, region in enumerate(annotation_json):
-        if 'points' not in region['region_shape_attributes']:
+    annotation_json['width'] *= scale
+    annotation_json['height'] *= scale
+    for idx, region in enumerate(annotation_json['regions']):
+        if 'points' not in region:
             continue
-        coord_string = region['region_shape_attributes']['points']
-        coord_numpy = np.array([[float(value) for value in point.split(',')]
-                                    for point in coord_string.split(';')])
+        # coord_string = str(region['points'])
+        coord_numpy = np.array([[float(value) for value in point]
+                                    for point in region['points']])
         coord_numpy *= scale
-        annotation_json[idx]['region_shape_attributes']['points'] = coord_numpy
+        annotation_json['regions'][idx]['points'] = coord_numpy
 
     return image, annotation_json
 
@@ -106,9 +106,9 @@ def warp_image_and_annotation(image, annotation_json: list):
     '''
     Crop and warp document image and annotation coordinates
     '''
-    for region in annotation_json[1:]:
-        if region["region_shape_attributes"]["name"] == "doc":
-            doc_coords = region["region_shape_attributes"]["points"]
+    for region in annotation_json['regions']:
+        if region["tag"] == "doc":
+            doc_coords = region["points"]
             break
     else:
         return None, None, None
@@ -116,15 +116,15 @@ def warp_image_and_annotation(image, annotation_json: list):
     # Warp image
     image_warped, transform_matrix = warp_image(image, doc_coords)
     # Warp annotations
-    annotation_json[0]['region_shape_attributes']['width'] = image_warped.shape[1]
-    annotation_json[0]['region_shape_attributes']['height'] = image_warped.shape[0]
-    for index, region in enumerate(annotation_json):
-        if 'points' not in region['region_shape_attributes']:
+    annotation_json['width'] = image_warped.shape[1]
+    annotation_json['height'] = image_warped.shape[0]
+    for index, region in enumerate(annotation_json['regions']):
+        if 'points' not in region:
             continue
-        coord_numpy = annotation_json[index]['region_shape_attributes']['points']
+        coord_numpy = annotation_json['regions'][index]['points']
         coord_numpy = cv2.perspectiveTransform(np.array([coord_numpy]),
                                                transform_matrix)
-        annotation_json[index]['region_shape_attributes']['points'] = coord_numpy
+        annotation_json['regions'][index]['points'] = coord_numpy
     return image_warped, annotation_json, transform_matrix
 
 def rewarp_image(original, warped, tranformation_matrix):

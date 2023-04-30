@@ -23,6 +23,7 @@ from masking import mask_fields, mask_region
 from gan_model import load_gan_model
 from impainting import inpaint_gan
 
+
 class Anonymizer():
     '''
     Anonymizer class to handle front and back RG anonimizations
@@ -96,8 +97,8 @@ class Anonymizer():
         Verify if json has the mandatory fields
         '''
         contain_names = []
-        for region in annotation_json[1:]:
-            contain_names.append(region['region_shape_attributes']['name'])
+        for region in annotation_json['regions']:
+            contain_names.append(region['tag'])
         for region in self.image_regions:
             if region not in contain_names:
                 return False
@@ -110,14 +111,14 @@ class Anonymizer():
         '''
         letters_placeholder = 'a'
         numbers_placeholder = '0'
-        for idx, region in enumerate(annotation_json):
-            if 'region_attributes' not in region:
+        for idx, region in enumerate(annotation_json['regions']):
+            if region['transcription'] is None:
                 continue
-            transcription = region['region_attributes']['transcription']
+            transcription = region['transcription']
             if isinstance(transcription, str):
                 anon_transcription = re.sub(r'(\w(?<!\d))', letters_placeholder, transcription)
                 anon_transcription = re.sub(r'\d', numbers_placeholder, anon_transcription)
-                annotation_json[idx]['region_attributes']['transcription'] = anon_transcription
+                annotation_json['regions'][idx]['transcription'] = anon_transcription
         return annotation_json
 
     def save_annotation_json(self, annotation_json, annotation_path, save_path):
@@ -125,30 +126,32 @@ class Anonymizer():
         Save json anonymized and warped
         '''
         anon_annotation_json = self.anonymize_json(annotation_json.copy())
-        for idx, region in enumerate(anon_annotation_json):
-            if 'region_shape_attributes' not in region:
+        for idx, region in enumerate(anon_annotation_json['regions']):
+            if 'points' not in region:
                 continue
-            if 'points' not in region['region_shape_attributes']:
-                continue
-            points = region['region_shape_attributes']['points'].astype(int)
+            points = region['points'].astype(int)
             points = points.tolist()
-            anon_annotation_json[idx]['region_shape_attributes']['points'] = points
+            anon_annotation_json['regions'][idx]['points'] = points
         with open(os.path.join(save_path, os.path.basename(annotation_path)),
                 'w', encoding="utf-8") as file_handler:
             json.dump(annotation_json , file_handler)
 
-    def run(self):
+    def run(self, return_anon=False):
         """
         Run anonimization on all files
         """
+        ret_all = []
         for index, (image_file, annotation_file) in enumerate(zip(self.image_file_list,
                                                 self.annotation_file_list)):
             if index <= -1:
                 continue
             print("Index: ", index)
-            self.anonymize_single(image_file, annotation_file)
+            ret = self.anonymize_single(image_file, annotation_file, return_anon=return_anon)
+            if return_anon:
+                ret_all.append(ret)
+        return ret_all
 
-    def anonymize_single(self, image_path, annotation_path):
+    def anonymize_single(self, image_path, annotation_path, return_anon=False):
         """
         Run anonimization in a pair of image and annotation
         """
@@ -203,3 +206,6 @@ class Anonymizer():
         # Save anonymized jsons
         self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
         self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
+
+        if return_anon:
+            return make_inst(image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json)
