@@ -1,18 +1,24 @@
 from utils import paths
-from synthesize_bgs import inpaint_dir
-from anonymize_input import anonymize_dir
+# from synthesize_bgs import inpaint_dir
+# from anonymize_input import anonymize_dir
+from anonymizer import Anonymizer
 
 import argparse
 import json
 import os
+import cv2
 
 def main(cfg):
-    # samples = ['front', 'back']
+    samples = ['front', 'back']
 
-    # input_dir = paths.SynthesisDir('front')
-    # anonymize_dir(cfg, input_dir)
+    for sample in samples:
+        input_dir = paths.SynthesisDir(sample)
+        print(input_dir.path_input, input_dir.path_json)
+        anon = Anonymizer(str(input_dir.path_input) + '/', str(input_dir.path_json) + '/', \
+                        mode=sample, max_img_size=cfg['max-width'])
 
-    # inpaint_dir
+        ret = anon.run(return_anon=True)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

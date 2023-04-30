@@ -23,6 +23,40 @@ from masking import mask_fields, mask_region
 from gan_model import load_gan_model
 from impainting import inpaint_gan
 
+def make_inst(image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json):
+    return {
+        "original": image,
+        "anonymized": inpainted_warped,
+        "matrix": warp_matrix,
+        "anon_json": warped_annotation_json,       
+        "json": annotation_json       
+    }
+
+class AnonymizedBatch():
+    def __init__(self, warp_dir, rewarp_dir, mode):
+        if mode not in ['front', 'back']:
+            print("Mode must be 'front' or 'back': {mode}")
+        
+        self.anons = []
+        self.n_inst = 0
+
+        self.warp_dir = warp_dir
+        self.rewarp_dir = rewarp_dir
+    
+    def add_img(self, orig_image, anon_image, warp_matrix, anon_json, mode):
+        new_inst = {
+            "original": orig_image,
+            "anonymized": anon_image,
+            "matrix": warp_matrix,
+            "anon_json": anon_json
+        }
+        self.anons.append(new_inst)
+        self.n_inst += 1
+    
+    # def save_all_synthesized(self):
+
+        # self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
+        # self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
 
 class Anonymizer():
     '''
@@ -148,6 +182,7 @@ class Anonymizer():
             print("Index: ", index)
             ret = self.anonymize_single(image_file, annotation_file, return_anon=return_anon)
             if return_anon:
+                return ret
                 ret_all.append(ret)
         return ret_all
 
