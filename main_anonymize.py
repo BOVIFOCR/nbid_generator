@@ -6,16 +6,34 @@ Data: April 2023
 '''
 
 from anonymizer import Anonymizer
+import argparse
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', '-c', default='./config.json')
+    args = parser.parse_args()
+    
+    if not os.path.isfile(args.config):
+        print(f"\"{args.config}\" is not a readable file.")
 
-    MAX_IMAGE_SIZE = 1920
-    IMAGES_FOLDER = "./synthesis_input/front/images/"# "/home/luizcoelho/datasets/ufpr_documents/front/images/"
-    ANNOTATIONS_FOLDER = "./synthesis_input/front/labels/" #"/home/luizcoelho/datasets/ufpr_documents/front/jsons/"
-    anon_front = Anonymizer(IMAGES_FOLDER, ANNOTATIONS_FOLDER, 'front', MAX_IMAGE_SIZE)
-    anon_front.run()
+    with open(args.config) as f:
+        cfg = json.load(f)
 
-    # IMAGES_FOLDER = "/home/luizcoelho/datasets/ufpr_documents/back/images/"
-    # ANNOTATIONS_FOLDER = "/home/luizcoelho/datasets/ufpr_documents/back/jsons/"
-    # anon_back = Anonymizer(IMAGES_FOLDER, ANNOTATIONS_FOLDER, 'back', MAX_IMAGE_SIZE)
-    # anon_back.run()
+
+    samples = cfg['samples']
+
+    base_dir = cfg['input_dir']
+    save_dir = cfg['save_dir']
+
+    for sample in samples:
+        sample_cfg = cfg['sample_cfg'][sample]
+
+        anon = Anonymizer(
+            base_dir + sample_cfg['images'],
+            base_dir + sample_cfg['labels'],
+            sample,
+            cfg['gan_config'],
+            filelist = base_dir + sample_cfg['filelist'],
+            max_img_size = cfg['max_width']
+        )
+        anon.run()
