@@ -1,0 +1,35 @@
+{
+    "device": "cpu",
+    "gan_dir": "files/models/",
+    "init_model_cn": "model_cn_step90000",
+
+    "alpha": 0.0004,
+    "arc": "celeba",
+    "bdivs": 1,
+    "bsize": 96,
+    "cn_input_size": 160,
+    "data_dir": "datasets/img_align_celeba",
+    "data_parallel": true,
+    "hole_max_h": 96,
+    "hole_max_w": 96,
+    "hole_min_h": 48,
+    "hole_min_w": 48,
+    "init_model_cd": null,
+    "ld_input_size": 96,
+    "max_holes": 1,
+    "mpv": [
+        0.5062325495504219,
+        0.4255871700324652,
+        0.38299278586700136
+    ],
+    "num_test_completions": 16,
+    "optimizer": "adadelta",
+    "recursive_search": false,
+    "result_dir": "results/celeba/",
+    "snaperiod_1": 10000,
+    "snaperiod_2": 10000,
+    "snaperiod_3": 10000,
+    "steps_1": 90000,
+    "steps_2": 10000,
+    "steps_3": 400000
+}
