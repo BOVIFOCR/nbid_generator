@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from utils import class_pessoa
 from anonymizer import to_img
-from warping import rewarp_image, rotate_all, rewarp_annot
+from utils.warping import rewarp_image, rotate_all, rewarp_annot
 # import polygon_functions
 
 from utils.logging_cfg import logging

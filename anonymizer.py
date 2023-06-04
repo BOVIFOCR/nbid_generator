@@ -17,13 +17,13 @@ import numpy as np
 import cv2
 from PIL import Image
 
-from warping import (resize_image_and_annotation,
-                     warp_image_and_annotation,
-                     rewarp_image,
-                     rotate_all)
-from masking import mask_fields, mask_region
-from gan_model import load_gan_model
-from inpainting import inpaint_gan
+from utils.warping import (resize_image_and_annotation,
+                           warp_image_and_annotation,
+                           rewarp_image,
+                           rotate_all)
+from utils.masking import mask_fields, mask_region
+from utils.gan_model import load_gan_model
+from utils.inpainting import inpaint_gan
 
 def make_inst(name, image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json, degrees):
     return {

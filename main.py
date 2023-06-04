@@ -1,4 +1,3 @@
-from utils import paths
 from synthesize_bgs import process_from_image
 from anonymizer import Anonymizer
 from text_2_image import save_annot_txt
