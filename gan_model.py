@@ -15,16 +15,19 @@ import torch
 import torch.nn as nn
 
 
-def load_gan_model():
+def load_gan_model(gan_cfg_file):
     '''
     Load GAN model from binary file
     '''
-    gan = CompletionNetwork()
-    gan.load_state_dict(torch.load("models/model_cn", map_location="cpu"))
 
-    with open("models/config.json", "r", encoding="utf-8") as file_handler:
-        config = json.load(file_handler)
-    mpv = torch.tensor(config["mpv"]).view(3, 1, 1).cpu()
+    with open(gan_cfg_file, "r", encoding="utf-8") as fd:
+        gan_cfg = json.load(fd)
+
+    gan = CompletionNetwork()
+    gan.load_state_dict(torch.load(gan_cfg['gan_dir'] + gan_cfg['init_model_cn'],
+                        map_location=gan_cfg['device']))
+
+    mpv = torch.tensor(gan_cfg["mpv"]).view(3, 1, 1).cpu()
 
     return gan, mpv
 

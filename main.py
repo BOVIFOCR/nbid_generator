@@ -26,13 +26,14 @@ def main(cfg):
         anon = Anonymizer(
                 base_dir + sample_cfg['images'],
                 base_dir + sample_cfg['labels'],
-                mode=sample,
+                sample,
+                cfg['gan_config'],
                 filelist = base_dir + sample_cfg['filelist'],
-                max_img_size=cfg['max_width']
+                max_img_size = cfg['max_width']
             )
 
         for ret in anon.run(return_anon=True):
-            ims = process_from_image(ret, sample, cfg['n_iters'])
+            ims = process_from_image(ret, sample, cfg['num_iters'])
             save_instances(ims, save_dir, sample_cfg)
 
 if __name__ == "__main__":
