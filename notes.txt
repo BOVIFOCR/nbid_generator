@@ -1,6 +1,0 @@
-			- make a weighted name dictionary
-		  - new font?
-DONE:	- move .ttf to files/
-		  - fix mp_lock on synthesizing
-DONE: - standardize field names
-DONE:	- fix dates (dataexp > datanasc always)
