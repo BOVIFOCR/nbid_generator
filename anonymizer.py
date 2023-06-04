@@ -15,54 +15,43 @@ import re
 import copy
 import numpy as np
 import cv2
+from PIL import Image
 
 from warping import (resize_image_and_annotation,
                      warp_image_and_annotation,
-                     rewarp_image)
+                     rewarp_image,
+                     rotate_all)
 from masking import mask_fields, mask_region
 from gan_model import load_gan_model
-from impainting import inpaint_gan
+from inpainting import inpaint_gan
 
-def make_inst(image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json):
+def make_inst(name, image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json, degrees):
     return {
+        "name": name,
         "original": image,
         "anonymized": inpainted_warped,
         "matrix": warp_matrix,
-        "anon_json": warped_annotation_json,       
-        "json": annotation_json       
+        "anon_json": warped_annotation_json,
+        "json": annotation_json,
+        "degrees": degrees
     }
 
-class AnonymizedBatch():
-    def __init__(self, warp_dir, rewarp_dir, mode):
-        if mode not in ['front', 'back']:
-            print("Mode must be 'front' or 'back': {mode}")
-        
-        self.anons = []
-        self.n_inst = 0
+def to_img(inst):
+    if (type(inst['original']) != Image.Image):
+        inst['original'] = Image.fromarray(inst['original'])
+        inst['anonymized'] = Image.fromarray(inst['anonymized'])
 
-        self.warp_dir = warp_dir
-        self.rewarp_dir = rewarp_dir
-    
-    def add_img(self, orig_image, anon_image, warp_matrix, anon_json, mode):
-        new_inst = {
-            "original": orig_image,
-            "anonymized": anon_image,
-            "matrix": warp_matrix,
-            "anon_json": anon_json
-        }
-        self.anons.append(new_inst)
-        self.n_inst += 1
-    
-    # def save_all_synthesized(self):
+def to_array(inst):
+    if (type(inst['original']) != np.ndarray):
+        inst['original'] = np.array(inst['original'])
+        inst['anonymized'] = np.array(inst['anonymized'])
 
-        # self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
-        # self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
 
 class Anonymizer():
     '''
     Anonymizer class to handle front and back RG anonimizations
     '''
-    def __init__(self, images_folder, annotations_folder, mode, max_img_size=1920):
+    def __init__(self, images_folder, annotations_folder, mode, filelist=None, max_img_size=1920):
         if mode not in ['front', 'back']:
             print("Mode must be 'front' or 'back': {mode}")
 
@@ -92,10 +81,32 @@ class Anonymizer():
         if not os.path.exists(self.rewarped_dir):
             os.mkdir(self.rewarped_dir)
 
-        # Get image and annotation paths
-        self.image_file_list, self.annotation_file_list = self.list_directories()
-        self.image_file_list, self.annotation_file_list = self.sync_directories(
-            self.image_file_list, self.annotation_file_list)
+
+        if filelist is not None:
+            # Get filenames
+            self.image_file_list, self.annotation_file_list,\
+                self.image_degrees = self.get_from_filelist(filelist)
+
+        else:
+            # Get image and annotation paths
+            self.image_file_list, self.annotation_file_list = self.list_directories()
+            self.image_file_list, self.annotation_file_list = self.sync_directories(
+                                    self.image_file_list, self.annotation_file_list)
+            self.image_degrees = [0]*len(self.image_file_list)
+
+    def get_from_filelist(self, filelist):        
+        with open(filelist, "r") as fd:
+            lines = [x.strip('\n') for x in fd.readlines()]
+
+        image_file_list = []
+        annotation_file_list = []
+        image_degrees = []
+        for line in lines:
+            splt = line.split(' ')
+            image_file_list.append(self.images_folder + splt[0])
+            image_degrees.append(int(splt[1]))
+            annotation_file_list.append(self.annotations_folder + os.path.splitext(splt[0])[0] + ".json")
+        return image_file_list, annotation_file_list, image_degrees
 
     def list_directories(self):
         '''
@@ -175,18 +186,22 @@ class Anonymizer():
         Run anonimization on all files
         """
         ret_all = []
-        for index, (image_file, annotation_file) in enumerate(zip(self.image_file_list,
-                                                self.annotation_file_list)):
+        for index, (image_file, annotation_file, degrees) in enumerate(zip(self.image_file_list,
+                                                self.annotation_file_list, self.image_degrees)):
             if index <= -1:
                 continue
+            print(image_file, annotation_file)
             print("Index: ", index)
-            ret = self.anonymize_single(image_file, annotation_file, return_anon=return_anon)
+            ret = self.anonymize_single(image_file, annotation_file, degrees,
+                                        return_anon=return_anon)
+            # return
             if return_anon:
-                return ret
+                yield ret
+            else:
                 ret_all.append(ret)
         return ret_all
 
-    def anonymize_single(self, image_path, annotation_path, return_anon=False):
+    def anonymize_single(self, image_path, annotation_path, degrees, inpaint=True, return_anon=False):
         """
         Run anonimization in a pair of image and annotation
         """
@@ -199,12 +214,14 @@ class Anonymizer():
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
         with open(annotation_path, encoding="utf-8") as file_handler:
             annotation_json = json.load(file_handler)
-        print(image_path, annotation_path)
 
         # Validate json
         valid = self.validate_json(annotation_json)
         if not valid:
             return
+
+        # Rotate
+        image, annotation_json = rotate_all(image, annotation_json, degrees)
 
         # Resize
         image, annotation_json = resize_image_and_annotation(image, annotation_json,
@@ -222,25 +239,30 @@ class Anonymizer():
         mask_full = np.zeros_like(anonymization_mask)
         mask_full = cv2.bitwise_or(mask_full, anonymization_mask)
 
-        # Text field inpainting
-        inpainted_warped = inpaint_gan(
-                    warped_image, mask_full, self.gan, self.mpv)
-
-        # Other region impainting (face, signature, thumb)
-        for image_region in self.image_regions:
-            image_masked_region = mask_region(inpainted_warped, warped_annotation_json,
-                                                    image_region)
+        if inpaint:
+            # Text field inpainting
             inpainted_warped = inpaint_gan(
-                        inpainted_warped, image_masked_region, self.gan, self.mpv)
+                        warped_image, mask_full, self.gan, self.mpv)
 
-        # Rewarping
-        rewarped_full = rewarp_image(image, inpainted_warped, warp_matrix)
-        cv2.imwrite(os.path.join(self.rewarped_dir, os.path.basename(image_path)),
-                    rewarped_full)
-
-        # Save anonymized jsons
-        self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
-        self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
+            # Other region impainting (face, signature, thumb)
+            for image_region in self.image_regions:
+                image_masked_region = mask_region(inpainted_warped, warped_annotation_json,
+                                                        image_region)
+                inpainted_warped = inpaint_gan(
+                            inpainted_warped, image_masked_region, self.gan, self.mpv)
+        else:
+            inpainted_warped = warped_image
 
         if return_anon:
-            return make_inst(image, inpainted_warped, warp_matrix, warped_annotation_json, annotation_json)
+            return make_inst(image_path.split('/')[-1], image,\
+                inpainted_warped, warp_matrix, warped_annotation_json, annotation_json, degrees)
+
+        else:
+            # Rewarping
+            rewarped_full = rewarp_image(image, inpainted_warped, warp_matrix)
+            cv2.imwrite(os.path.join(self.rewarped_dir, os.path.basename(image_path)),
+                        rewarped_full)
+
+            # Save anonymized jsons
+            self.save_annotation_json(warped_annotation_json, annotation_path, self.warped_dir)
+            self.save_annotation_json(annotation_json.copy(), annotation_path, self.rewarped_dir)
