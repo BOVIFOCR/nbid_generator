@@ -89,6 +89,27 @@ org = {
 }
 # ------------------------------------------------------------------------------------------------------------------
 
+name_dct_path = "./files/nnomes.txt"
+
+name_dct = []
+with open(name_dct_path, "r") as fd:
+    for line in fd:
+        splt = line.strip("\n").split(" ")
+        name_dct += [splt[0] + " "]*int(splt[1])
+
+n_names = len(name_dct)
+
+surname_dct_path = './files/s_nome.txt'
+surname_dct = []
+with open(surname_dct_path, "r") as fd:
+    for line in fd:
+        surname_dct += [line.strip("\n")]
+
+n_surnames = len(surname_dct)
+
+df = pd.read_csv(r"./files/cid_est.csv", encoding="utf-8")
+
+
 def gen_rand_datetime(min_time=datetime(1950,1,1,00,00,00), max_time=datetime.now()):
     # Get total number of days between min and max time
     total_days = (max_time - min_time).days
@@ -139,17 +160,111 @@ def make_rg():
     seq_rg = formata_rg(seq_rg)
     return seq_rg
 
-def make_name():
-    file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
-    names = file.readlines()
+def make_name(tipo):
+    # file = open("./files/nome.txt", "r", encoding="ISO-8859-1")
+    # names = file.readlines()
+    if tipo == "nome":
+        nn = random.randint(2,4)
+        if nn == 4:
+            nn = 2
+    else:
+        nn = random.randint(2,3)
+
     full_name = ""
-    for _ in range(3):
+    for _ in range(nn):
         random.seed()
-        sel_num = random.randint(0, len(names) - 1)
-        full_name = full_name + names[sel_num].rstrip("\n") + ""
+        sel_num = random.randint(0, n_names-1)
+        full_name = full_name + name_dct[sel_num]
     full_name = full_name[:-1]
     return full_name
 
+def make_surname():
+    sel = random.randint(0, n_surnames-1)
+    return surname_dct[sel].upper()
+
+def get_nnomes(st):
+    return len(st.split(' '))
+
+def modelos_cnas():
+    sel = random.randint(0, 2)
+    doc = ""
+
+    random.seed()
+    sel_num = random.randint(0, len(df) - 1)
+    sel_cid = df["Município"][sel_num].upper()
+    sel_est = df["UF"].values[sel_num].upper()
+
+    if sel == 0:
+        c_nasc = 'CERT.NAS='
+        a_folha = 'FL='
+        livro = 'LV='
+
+        lista = random.sample(range(1, 500), 3)
+        c_nasc = c_nasc+str(lista[0])+' '
+        livro = livro + str(lista[1])+' '
+        a_folha = a_folha+str(lista[2])
+
+        folha = c_nasc+livro+a_folha
+
+        cart = random.randint(0, 5)
+        cartorio = ["SEDE", '1a ZONA', '2a ZONA', '3 ZONA', '4 ZONA', '5 ZONA'][cart]
+
+        doc = "CART. " + cartorio + "-" + sel_cid + " " + sel_est
+
+    elif sel == 1:
+        c_nasc = "CERT. NASCIMENTO CARTÓRIO: "
+        termo = " TERMO:"
+        folha = " FOLHA:"
+
+        cart = random.randint(0, 5)
+        cartorio = ["SEDE", '1a ZONA', '2a ZONA', '3 ZONA', '4 ZONA', '5 ZONA'][cart]
+
+        term = random.randint(1, 1000000)
+        termo += f"{term:07d}"
+
+        fl = random.randint(1, 8000)
+        folha += f"{fl:08d}"
+
+        folha = c_nasc + cartorio + termo + folha
+
+        liv = random.randint(0, 4)
+        liv_num = random.randint(1, 10000)
+        livro = ["a", "b", "c", "d", "e"][liv]
+        livro = f"{liv_num:05d}" + livro
+
+        doc = "LIVRO: " + livro + " " + sel_cid + " - " + sel_est
+
+    if sel == 2:
+        cn = " CN:LV."
+
+        liv = random.randint(0, 4)
+        liv_num = random.randint(1, 1000)
+        livro = ["a", "b", "c", "d", "e"][liv]
+        cn += livro + f"{liv_num:04d}"
+
+        fl_num = random.randint(1, 1000)
+        fl = f"FLS.{fl_num:04d}v"
+
+        fl_num = random.randint(1, 195000)
+        ns = f"N.{fl_num:04d}"
+
+        folha = sel_cid + "-" + sel_est + cn + "/" + fl + "/" + ns
+
+        d1 = "".join(random.choices(string.digits, k=6))
+        d2 = "".join(random.choices(string.digits, k=2))
+        d3 = "".join(random.choices(string.digits, k=2))
+        d4 = "".join(random.choices(string.digits, k=4))
+        d5 = "".join(random.choices(string.digits, k=1))
+        d6 = "".join(random.choices(string.digits, k=5))
+        d7 = "".join(random.choices(string.digits, k=3))
+        d8 = "".join(random.choices(string.digits, k=7))
+        d9 = "".join(random.choices(string.digits, k=2))
+        
+        doc = "MATRÍCULA: " + d1 + " " + d2 + " " + d3 + " " + d4 + \
+                        " " + d5 + " " + d6 + " " + d7 + " " + d8 + " " + d9
+
+
+    return [folha, doc]
 
 
 class Person:
@@ -157,9 +272,9 @@ class Person:
 
         self.entities = {}
 
-        self.set_nome()
         self.set_filiacao(1)
         self.set_filiacao(2)
+        self.set_nome()
         self.set_cpf()
         self.set_rg()
         self.set_cnh()
@@ -169,7 +284,10 @@ class Person:
         self.set_cid_est(50)
         self.set_est()
         self.set_cid(50)
+
         self.set_d_orig()
+        self.cnt = 0
+
         self.set_datanasc()
         self.set_dataexp()
         self.set_org()
@@ -178,7 +296,10 @@ class Person:
         self.set_fator_rh()
         self.set_titulo()
         self.set_militar()
+
         self.set_profissional()
+        self.cnt_p = 0
+
         self.set_ctps()
         self.set_serie()
 
@@ -186,20 +307,44 @@ class Person:
         if tipo in self.entities:
             if tipo in ('datanasc', 'dataexp'):
                 return time_to_str(self.entities[tipo])
+            elif tipo == 'regcivil':
+                ret = self.entities[tipo][self.cnt]
+                self.cnt = (self.cnt + 1) % 2
+                return ret
+            elif tipo in ('filiacao1', 'filiacao2'):
+                return self.entities[tipo]["name"]
+            elif tipo == 'profissional':
+                if self.cnt > 0:
+                    return ""
+                self.cnt += 1
+                return self.entities[tipo]
             return self.entities[tipo]
         else:
             return None
 
     def set_nome(self):
-        self.entities['nome'] = make_name()
+        self.entities['nome'] = make_name("nome")
+        if get_nnomes(self.entities['nome']) == 3:
+            chosen = random.randint(1, 2)
+            self.entities['nome'] += " " + self.entities[f"filiacao{chosen}"]["surname"]
+        else:
+            chosen = random.randint(0, 3)
+            if chosen == 0:
+                chosen = random.randint(1, 2)
+                self.entities['nome'] += " " + self.entities[f"filiacao{chosen}"]["surname"]
+            else:
+                self.entities['nome'] += " " + self.entities[f"filiacao1"]["surname"]
+                self.entities['nome'] += " " + self.entities[f"filiacao2"]["surname"]
+
         return self.entities['nome']
 
     def set_filiacao(self, num=1):
-        full_name = make_name()
+        full_name = make_name("filiacao")
+        surname = make_surname()
         if num == 1:
-            self.entities['filiacao1'] = full_name
+            self.entities['filiacao1'] = {"name": full_name + " " + surname, "surname": surname}
         else:
-            self.entities['filiacao2'] = full_name
+            self.entities['filiacao2'] = {"name": full_name + " " + surname, "surname": surname}
         return full_name
 
     def set_cpf(self):
@@ -310,15 +455,10 @@ class Person:
 
     # TODO: Checar get_cid
     def set_d_orig(self):
-        df = pd.read_csv(r"./files/cid_est.csv", encoding="utf-8")
-        random.seed()
-        sel_num = random.randint(0, len(df) - 1)
-        sel_cid = df["Município"][sel_num].upper()
-        sel_est = df["UF"].values[sel_num].upper()
+        res = modelos_cnas()
 
-        doc = "CMC= " + sel_cid + "-" + sel_est + " ,SEDE"
-        self.entities['regcivil'] = doc
-        return doc
+        self.entities['regcivil'] = [res[0], res[1]]
+        return res
 
     def set_datanasc(self):
         if 'dataexp' not in self.entities:
@@ -358,10 +498,10 @@ class Person:
         return rh
 
     def set_titulo(self):
-        # 1 out of 10
+        # 1 out of 2
         if 'datanasc' not in self.entities or \
                     ((datetime.now() - self.entities['datanasc']).days//365) < 16 \
-                             or random.randint(0, 9) == 0:
+                             or random.randint(0, 1) == 0:
             titulo = "*****"
         else:
             titulo = "0"
@@ -371,10 +511,10 @@ class Person:
         return titulo
 
     def set_ctps(self):
-        # 1 out of 10
+        # 1 out of 4
         if 'datanasc' not in self.entities or \
                 ((datetime.now() - self.entities['datanasc']).days//365) < 14 \
-                    or random.randint(0, 9) == 0 or 'cpf' not in self.entities:
+                    or random.randint(0, 3) == 0 or 'cpf' not in self.entities:
             ctps = "*****"
         else:
             cpf = self.entities['cpf']
@@ -392,7 +532,7 @@ class Person:
         return serie
 
     def set_cns(self):
-        if random.randint(0, 5) != 5: # 4 out of 5
+        if random.randint(0, 2) != 0: # 2 out of 3
             cns = "*****"
         else:
             cns = ""
@@ -402,7 +542,7 @@ class Person:
         return cns
 
     def set_profissional(self):
-        if random.randint(0, 19) != 00: # 19 out of 20
+        if random.randint(0, 2) != 0: # 2 out of 3
             profissional = "*****"
         else:
             if random.randint(0, 1) == 1:
@@ -420,7 +560,7 @@ class Person:
         return profissional
 
     def set_militar(self):
-        if random.randint(0, 9) != 0:
+        if random.randint(0, 5) != 0: # 2 out of 3
             militar = "*****"
         else:
             militar = ""

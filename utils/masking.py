@@ -16,9 +16,9 @@ def mask_region(image, annotation_json, image_field_name):
     Return anonymization mask for large non-textual regions 
     '''
     anonymization_mask = np.zeros(image.shape[:2]).astype(np.uint8)
-    for region in annotation_json[1:]:
-        if region['region_shape_attributes']['name'] == image_field_name:
-            coords = region['region_shape_attributes']['points']
+    for region in annotation_json['regions']:
+        if region['tag'] == image_field_name:
+            coords = region['points']
             anonymization_mask = mask_polygon(anonymization_mask, coords)
     return anonymization_mask
 
@@ -27,9 +27,9 @@ def mask_fields(image, annotation_json, fields):
     Mask given fields with coordenates
     '''
     anonymization_mask = np.zeros(image.shape[:2]).astype(np.uint8)
-    for region in annotation_json[1:]:
-        if region['region_shape_attributes']['name'] in fields:
-            coords = region['region_shape_attributes']['points']
+    for region in annotation_json['regions']:
+        if region['tag'] in fields:
+            coords = region['points']
             anonymization_mask = mask_polygon(anonymization_mask, coords)
     return anonymization_mask
 

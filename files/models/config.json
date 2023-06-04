@@ -1,5 +1,6 @@
 {
     "device": "cpu",
+    "gan_dir": "files/models/",
     "init_model_cn": "model_cn_step90000",
 
     "alpha": 0.0004,

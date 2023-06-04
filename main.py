@@ -1,18 +1,39 @@
-from utils import paths
-from synthesize_bgs import inpaint_dir
-from anonymize_input import anonymize_dir
+from synthesize_bgs import process_from_image
+from anonymizer import Anonymizer
+from text_2_image import save_annot_txt
 
 import argparse
 import json
 import os
+import cv2
+
+def save_instances(images, final_dir, sample_cfg):
+    for im in images:
+        save_annot_txt(images[im]['labels'], final_dir + sample_cfg['output_labels'] + im + ".tsv")
+        cv2.imwrite(final_dir + sample_cfg['output_images'] + im + ".jpg", images[im]['image'])
+
 
 def main(cfg):
-    # samples = ['front', 'back']
+    samples = cfg['samples']
 
-    # input_dir = paths.SynthesisDir('front')
-    # anonymize_dir(cfg, input_dir)
+    base_dir = cfg['input_dir']
+    save_dir = cfg['save_dir']
 
-    # inpaint_dir
+    for sample in samples:
+        sample_cfg = cfg['sample_cfg'][sample]
+
+        anon = Anonymizer(
+                base_dir + sample_cfg['images'],
+                base_dir + sample_cfg['labels'],
+                sample,
+                cfg['gan_config'],
+                filelist = base_dir + sample_cfg['filelist'],
+                max_img_size = cfg['max_width']
+            )
+
+        for ret in anon.run(return_anon=True):
+            ims = process_from_image(ret, sample, cfg['num_iters'])
+            save_instances(ims, save_dir, sample_cfg)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

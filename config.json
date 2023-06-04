@@ -1,14 +1,36 @@
 {
+    "input_dir": "./synthesis_input/",
+    "save_dir": "./synthesis_output/",
     "samples": ["front", "back"],
- 
-    "device": "cpu",
-    "num-max-samples": 1,
-    "exec-parallel": false,
-    "max-width": 1920,
-    "num-max-procs": 32,
-    "job-chunksize": 8,
-    "keep-transcripts": true,
-    "num-iters": 1,
 
-    "gan-config": "./gan_model/config.json"
+    "sample_cfg": {
+        "front": {
+            "filelist": "front/files.txt",
+            "images": "front/input/",
+            "labels": "front/labels/",
+
+            "output_images": "front/images/",
+            "output_labels": "front/labels"
+        },
+        "back": {
+            "filelist": "back/files.txt",
+            "images": "back/input/",
+            "labels": "back/labels/",
+
+            "output_images": "back/images/",
+            "output_labels": "back/labels"
+        }
+    },
+ 
+    "gan_config": "./files/models/config.json",
+    "device": "cpu",
+
+    "num_max_samples": 1,
+    "exec_parallel": false,
+    "max_width": 1920,
+    "num_max_procs": 32,
+    "job_chunksize": 8,
+    "keep_transcripts": true,
+
+    "num_iters": 5
 }

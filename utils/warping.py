@@ -13,6 +13,7 @@ Data: April 2023
 
 import numpy as np
 import cv2
+from pytesseract import image_to_osd
 
 
 def resize_image_and_annotation(image, annotation_json: list, max_size: int):
@@ -29,16 +30,16 @@ def resize_image_and_annotation(image, annotation_json: list, max_size: int):
     else:
         scale = 1
 
-    annotation_json[0]['region_shape_attributes']['width'] *= scale
-    annotation_json[0]['region_shape_attributes']['height'] *= scale
-    for idx, region in enumerate(annotation_json):
-        if 'points' not in region['region_shape_attributes']:
+    annotation_json['width'] *= scale
+    annotation_json['height'] *= scale
+    for idx, region in enumerate(annotation_json['regions']):
+        if 'points' not in region:
             continue
-        coord_string = region['region_shape_attributes']['points']
-        coord_numpy = np.array([[float(value) for value in point.split(',')]
-                                    for point in coord_string.split(';')])
+        # coord_string = str(region['points'])
+        coord_numpy = np.array([[float(value) for value in point]
+                                    for point in region['points']])
         coord_numpy *= scale
-        annotation_json[idx]['region_shape_attributes']['points'] = coord_numpy
+        annotation_json['regions'][idx]['points'] = coord_numpy
 
     return image, annotation_json
 
@@ -101,30 +102,84 @@ def warp_image(image, rect):
     warped = cv2.warpPerspective(image, transform_matrix, (max_height, max_width))
     return warped, transform_matrix
 
+def rt270anti(bbox, wd):
+    nbbox = []
+    for x, y in bbox:
+        nbbox.append([y, wd - x])
+    return np.array(nbbox)
+
+def rt180(bbox, wd, hg):
+    nbbox = []
+    for x, y in bbox:
+        nbbox.append([hg - x, wd - y])
+    return np.array(nbbox)
+
+def rt90anti(bbox, hg):
+    nbbox = []
+    for x, y in bbox:
+        nbbox.append([hg - y, x])
+    return np.array(nbbox)
+
+
+def rotate_bbox(bbox, height, width, degrees):
+    if degrees == 270:
+        return rt90anti(bbox, width)
+    elif degrees == 180:
+        return rt180(bbox, width, height)
+    elif degrees == 90:
+        return rt270anti(bbox, height)
+    else:
+        return bbox
+
+def rotate_img(img, degrees):
+    if degrees == 90:
+        return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    elif degrees == 180:
+        return cv2.rotate(img, cv2.ROTATE_180)
+    elif degrees == 270:
+        return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    else:
+        return img
+
+def rotate_all(image, annotation_json, degrees):
+    wd, hg = annotation_json['width'], annotation_json['height']
+
+    image = rotate_img(image, degrees)
+    for i in range(len(annotation_json['regions'])):
+        reg = annotation_json['regions'][i]
+        reg['points'] = rotate_bbox(reg['points'], wd, hg, degrees)
+ 
+    if degrees in (90, 270):
+        annotation_json['width'] = hg
+        annotation_json['height'] = wd
+
+    return image, annotation_json
+
 
 def warp_image_and_annotation(image, annotation_json: list):
     '''
     Crop and warp document image and annotation coordinates
     '''
-    for region in annotation_json[1:]:
-        if region["region_shape_attributes"]["name"] == "doc":
-            doc_coords = region["region_shape_attributes"]["points"]
+    for region in annotation_json['regions']:
+        if region["tag"] == "doc":
+            doc_coords = region["points"]
             break
     else:
         return None, None, None
     doc_coords = order_points(doc_coords)
+
     # Warp image
     image_warped, transform_matrix = warp_image(image, doc_coords)
     # Warp annotations
-    annotation_json[0]['region_shape_attributes']['width'] = image_warped.shape[1]
-    annotation_json[0]['region_shape_attributes']['height'] = image_warped.shape[0]
-    for index, region in enumerate(annotation_json):
-        if 'points' not in region['region_shape_attributes']:
+    annotation_json['width'] = image_warped.shape[1]
+    annotation_json['height'] = image_warped.shape[0]
+    for index, region in enumerate(annotation_json['regions']):
+        if 'points' not in region:
             continue
-        coord_numpy = annotation_json[index]['region_shape_attributes']['points']
+        coord_numpy = annotation_json['regions'][index]['points']
         coord_numpy = cv2.perspectiveTransform(np.array([coord_numpy]),
                                                transform_matrix)
-        annotation_json[index]['region_shape_attributes']['points'] = coord_numpy
+        annotation_json['regions'][index]['points'] = coord_numpy
     return image_warped, annotation_json, transform_matrix
 
 def rewarp_image(original, warped, tranformation_matrix):
@@ -136,3 +191,27 @@ def rewarp_image(original, warped, tranformation_matrix):
                                    flags=cv2.WARP_INVERSE_MAP)
     rewarped_full = np.where(rewarped != (0,0,0), rewarped, original)
     return rewarped_full
+
+def rewarp_annot(inst):
+    new_labels = inst['new_labels']
+    mat = inst['matrix']
+    mat = np.linalg.inv(mat)
+
+    label = []
+    for i in range(len(new_labels)):
+        bbox = new_labels[i][1]
+        x1,y1,x2,y2 = bbox[0], bbox[1], bbox[2], bbox[1]
+        x3,y3,x4,y4 = bbox[2], bbox[3], bbox[0], bbox[3]
+
+        bbox = []
+        for coord in [[x1, y1, 1], [x2, y2, 1], [x3, y3, 1], [x4, y4, 1]]:
+            bbox.append(list(mat @ coord)[:-1])
+        label.append({'region_id': i, 'transcription': new_labels[i][0], 
+                      'tag': new_labels[i][2], 'points': bbox})
+
+    new_labels = {'regions': label, 'height': inst['original'].size[1],
+                                    'width': inst['original'].size[0],
+                                    'filename': inst['name']}
+    return new_labels
+
+ 

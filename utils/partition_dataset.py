@@ -90,7 +90,7 @@ def partition_dataset(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20)
     if mode not in ['cross', 'std']:
         raise ValueError("Mode must be either cross or std.")
 
-    filenames = glob(f"{fdir}/*.tsv")
+    filenames = glob(f"{fdir}/*.txt")
 
     if mode == 'cross':
         fs = {}
@@ -152,7 +152,7 @@ def main(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True
         fs = glob(f"{fdir}/*.txt")
         gen_new_annotations(fs)
     else:
-        fs = glob(f"{fdir}/*.tsv")
+        fs = glob(f"{fdir}/*.txt")
 
     train, valid, test = partition_dataset(mode, fdir, ratio_train, ratio_valid, ratio_test)
     save_dataset(train, valid, test, fdir)
@@ -160,18 +160,17 @@ def main(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', default='cross', choices=['cross', 'std'])
-    parser.add_argument('--fdir')
+    parser.add_argument('--fdir', required=True)
     
     parser.add_argument('--train', default=60)
     parser.add_argument("--valid", default=20)
     parser.add_argument("--test", default=20)
     parser.add_argument("--gen_new", default=False, action="store_true")
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     if not os.path.isdir(args['fdir']):
         print("Error: fdir is not a directory.")
         exit(-1)
 
     main(args['mode'], args['fdir'], 
-        ratio_train=args['train'], ratio_valid=args['valid'], ratio_test=args['test'],
-        args['gen_new'])
+        ratio_train=args['train'], ratio_valid=args['valid'], ratio_test=args['test'], gen_new= args['gen_new'])
