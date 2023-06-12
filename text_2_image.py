@@ -47,14 +47,15 @@ def save_annot_txt(labels, save_path):
     regs = labels['regions']
 
     with open(save_path, 'w') as fd:
-        for reg in regs:
+        for idx,reg in enumerate(regs):
             pts = reg['points']
-            x1, y1, x2, y2 = round(pts[0][0]), round(pts[0][1]), round(pts[1][0]), round(pts[1][1])
-            x3, y3, x4, y4 = round(pts[2][0]), round(pts[2][1]), round(pts[3][0]), round(pts[3][1])
+            x1, y1, x2, y2 = round(pts[0]), round(pts[1]), round(pts[2]), round(pts[1])
+            x3, y3, x4, y4 = round(pts[2]), round(pts[3]), round(pts[0]), round(pts[3])
 
-            fd.write('{},{},{},{},{},{},{},{},{},{}\n'.format(
+            fd.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+                    idx,
                     x1, y1, x2, y2, x3, y3, x4, y4,
-                    reg['transcription'], reg['tag']))
+                    reg['transcription'].replace(',', '.'), reg['tag']))
 
 # Gera o texto a ser colocado na mask.
 def text_generator(tipo_texto, pessoa):
@@ -117,8 +118,7 @@ def mask_gen_from_inst(inst):
     area_n_text = []
 
     for reg in inst['anon_json']['regions']:
-        if reg['tag'] in ('assinatura', 'doc', 'face', 'polegar', 'other') \
-            or reg['transcription'] is None:
+        if reg['tag'] in ('assinatura', 'doc', 'face', 'polegar', 'other'):
             continue
 
         coors, text = gen_text_area(reg, pessoa, img_height)
@@ -168,15 +168,12 @@ def mult_img_from_inst(inst, area_n_text, param):
 def ctrl_mask_gen_from_inst(inst):
     area_n_text = mask_gen_from_inst(inst)
     mult_img_from_inst(inst, area_n_text=area_n_text, param=150)
-    rewarped_full = rewarp_image(np.array(inst['original']),
-                                 inst['synthed'], inst['matrix'])
-    inst['new_labels'] = rewarp_annot(inst)
+    rewarped_full, inst['new_labels'] = rewarp_image(np.array(inst['original']), inst['synthed'],
+                            inst['matrix'], inst['new_labels'], inst['name'])
+
     rewarped_full, inst['new_labels'] = rotate_all(rewarped_full,
-                                inst['new_labels'], (360-inst['degrees']) % 360)
-    # new_name = create_img_name(inst['filename'])
+                                inst['new_labels'], (360-inst['degrees']) % 360, synthed=True)
     return rewarped_full
-    # cv.imwrite(save_dir + new_name, rewarped_full)
-        # rewarped_full = rewarp_image(image, inpainted_warped, warp_matrix)
 
 # Cria o txt baseado nas possíveis rotações que ocorreram com a imagem
 def write_txt_file(txt_name, area_n_text, dir_save):

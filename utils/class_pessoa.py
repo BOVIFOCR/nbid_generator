@@ -308,8 +308,10 @@ class Person:
             if tipo in ('datanasc', 'dataexp'):
                 return time_to_str(self.entities[tipo])
             elif tipo == 'regcivil':
+                if (self.cnt == 2):
+                    return ""
                 ret = self.entities[tipo][self.cnt]
-                self.cnt = (self.cnt + 1) % 2
+                self.cnt += 1
                 return ret
             elif tipo in ('filiacao1', 'filiacao2'):
                 return self.entities[tipo]["name"]
@@ -318,6 +320,8 @@ class Person:
                     return ""
                 self.cnt += 1
                 return self.entities[tipo]
+            elif tipo == 'dni':
+                return ""
             return self.entities[tipo]
         else:
             return None

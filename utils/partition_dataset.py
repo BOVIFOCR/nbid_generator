@@ -90,7 +90,7 @@ def partition_dataset(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20)
     if mode not in ['cross', 'std']:
         raise ValueError("Mode must be either cross or std.")
 
-    filenames = glob(f"{fdir}/*.txt")
+    filenames = glob(f"{fdir}/*.tsv")
 
     if mode == 'cross':
         fs = {}
@@ -152,8 +152,9 @@ def main(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True
         fs = glob(f"{fdir}/*.txt")
         gen_new_annotations(fs)
     else:
-        fs = glob(f"{fdir}/*.txt")
+        fs = glob(f"{fdir}/*.tsv")
 
+    print(len(fs))
     train, valid, test = partition_dataset(mode, fdir, ratio_train, ratio_valid, ratio_test)
     save_dataset(train, valid, test, fdir)
 

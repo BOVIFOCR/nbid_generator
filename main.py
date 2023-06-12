@@ -9,8 +9,8 @@ import cv2
 
 def save_instances(images, final_dir, sample_cfg):
     for im in images:
-        save_annot_txt(images[im]['labels'], final_dir + sample_cfg['output_labels'] + im + ".tsv")
         cv2.imwrite(final_dir + sample_cfg['output_images'] + im + ".jpg", images[im]['image'])
+        save_annot_txt(images[im]['labels'], final_dir + sample_cfg['output_labels'] + im + ".tsv")
 
 
 def main(cfg):
@@ -21,6 +21,7 @@ def main(cfg):
 
     for sample in samples:
         sample_cfg = cfg['sample_cfg'][sample]
+        print(sample_cfg)
 
         anon = Anonymizer(
                 base_dir + sample_cfg['images'],
@@ -28,6 +29,7 @@ def main(cfg):
                 sample,
                 cfg['gan_config'],
                 filelist = base_dir + sample_cfg['filelist'],
+                inpaint = cfg['inpaint'],
                 max_img_size = cfg['max_width']
             )
 
