@@ -1,5 +1,6 @@
 from glob import glob
 import re
+import math
 import random
 import sys
 import argparse
@@ -84,13 +85,11 @@ def gen_new_annotations(fdir):
         gen_new_file(f)
 
 
-def partition_dataset(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20):
+def partition_dataset(mode, filenames, ratio_train=60, ratio_valid=20, ratio_test=20):
     if ratio_train + ratio_test + ratio_valid != 100:
         raise ValueError("Partition ratios do not add to 100%.")
     if mode not in ['cross', 'std']:
         raise ValueError("Mode must be either cross or std.")
-
-    filenames = glob(f"{fdir}/*.tsv")
 
     if mode == 'cross':
         fs = {}
@@ -127,19 +126,62 @@ def partition_dataset(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20)
 
     return train, valid, test
 
-def save_dataset(train, valid, test, fdir="."):
-    with open(f"{fdir}/train.csv", "w") as fd:
+def make_prots(files):
+
+    fs = set([x.split('.')[0] for x in files])
+    fs = list(fs)
+
+    inst50_fs = fs[:math.ceil(len(fs)/2)]
+    inst50_full = [x for x in files if x.split('.')[0] in inst50_fs]
+
+    inst25_fs = fs[:math.ceil(len(fs)/4)]
+    inst25_full = [x for x in files if x.split('.')[0] in inst25_fs]
+
+    dup50_full = []
+    dup25_full = []
+
+    dct = {}
+    for f in fs:
+        dct[f] = [x for x in files if x.split('.')[0] == f]
+        n_inst = len(dct[f])
+
+        dup50_full += dct[f][:math.ceil(n_inst/2)]
+        dup25_full += dct[f][:math.ceil(n_inst/4)]
+
+    random.shuffle(dup50_full)
+    random.shuffle(dup25_full)
+
+    return {
+        'inst50': inst50_full,
+        'inst25': inst25_full,
+        'dup50': dup50_full,
+        'dup25': dup25_full
+    }
+
+
+
+def save_dataset(train, valid, test, other=None, fdir=".", partition=""):
+    if partition != "":
+        preamb = partition.strip('/') + "_"
+    else:
+        preamb = ""
+    with open(f"{fdir+partition}{preamb}train.csv", "w") as fd:
         for idx, f in enumerate(train):
             fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
-    with open(f"{fdir}/valid.csv", "w") as fd:
+    with open(f"{fdir+partition}{preamb}valid.csv", "w") as fd:
         for idx, f in enumerate(valid):
             fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
-    with open(f"{fdir}/test.csv", "w") as fd:
+    with open(f"{fdir+partition}{preamb}test.csv", "w") as fd:
         for idx, f in enumerate(test):
             fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
+    if other is not None:
+        for prot in other:
+            with open(f"{fdir+partition}{preamb}{prot}.csv", "w") as fd:
+                for idx, f in enumerate(other[prot]):
+                    fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
 
 
-def main(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True):
+def main(mode, fdir, partition, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True):
     if mode not in ['cross', 'std']:
         print("Mode must be cross or std.")
         exit(-1)
@@ -149,29 +191,34 @@ def main(mode, fdir, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True
         exit(-1)
 
     if gen_new == True:
-        fs = glob(f"{fdir}/*.txt")
+        fs = glob(f"{fdir}labels/*.txt")
         gen_new_annotations(fs)
     else:
-        fs = glob(f"{fdir}/*.tsv")
+        fs = glob(f"{fdir+partition}labels/*.tsv")
 
-    print(len(fs))
-    train, valid, test = partition_dataset(mode, fdir, ratio_train, ratio_valid, ratio_test)
-    save_dataset(train, valid, test, fdir)
+    train, valid, test = partition_dataset(mode, fs, ratio_train, ratio_valid, ratio_test)
+    other = make_prots(train)
+
+    save_dataset(train, valid, test, other, fdir, partition)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', default='cross', choices=['cross', 'std'])
-    parser.add_argument('--fdir', required=True)
     
-    parser.add_argument('--train', default=60)
-    parser.add_argument("--valid", default=20)
-    parser.add_argument("--test", default=20)
+    parser.add_argument('--train', default=80)
+    parser.add_argument("--valid", default=10)
+    parser.add_argument("--test", default=10)
+
+    parser.add_argument("--dataset", default='./nbid_real/', required=True)
+    parser.add_argument("--partition", default="")
+
     parser.add_argument("--gen_new", default=False, action="store_true")
     args = vars(parser.parse_args())
 
-    if not os.path.isdir(args['fdir']):
+    if not os.path.isdir(args['dataset']):
         print("Error: fdir is not a directory.")
         exit(-1)
 
-    main(args['mode'], args['fdir'], 
-        ratio_train=args['train'], ratio_valid=args['valid'], ratio_test=args['test'], gen_new= args['gen_new'])
+    main(args['mode'], args['dataset'], 
+        ratio_train=args['train'], ratio_valid=args['valid'], ratio_test=args['test'],
+        gen_new = args['gen_new'], partition=args['partition'])

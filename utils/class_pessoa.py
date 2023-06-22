@@ -546,7 +546,9 @@ class Person:
         return cns
 
     def set_profissional(self):
-        if random.randint(0, 2) != 0: # 2 out of 3
+        if 'datanasc' not in self.entities or \
+            ((datetime.now() - self.entities['datanasc']).days//365) < 16 \
+            or random.randint(0, 2) != 0: # 2 out of 3
             profissional = "*****"
         else:
             if random.randint(0, 1) == 1:
@@ -564,7 +566,9 @@ class Person:
         return profissional
 
     def set_militar(self):
-        if random.randint(0, 5) != 0: # 2 out of 3
+        if 'datanasc' not in self.entities or \
+            ((datetime.now() - self.entities['datanasc']).days//365) < 18 \
+            or random.randint(0, 5) != 0: # 2 out of 3
             militar = "*****"
         else:
             militar = ""
@@ -574,6 +578,10 @@ class Person:
         return militar
 
     def set_cnh(self):
-        cnh = make_rg()
-        self.entities['cnh'] = cnh
+        if 'datanasc' not in self.entities or \
+                    ((datetime.now() - self.entities['datanasc']).days//365) < 18:
+            cnh = make_rg()
+            self.entities['cnh'] = cnh
+        else:
+            self.entities['cnh'] = "*****"
         return cnh
