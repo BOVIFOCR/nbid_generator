@@ -131,10 +131,10 @@ def make_prots(files):
     fs = set([x.split('.')[0] for x in files])
     fs = list(fs)
 
-    inst50_fs = fs[:math.ceil(len(fs)/2)]
+    inst50_fs = fs[:math.ceil(len(fs)*0.6)]
     inst50_full = [x for x in files if x.split('.')[0] in inst50_fs]
 
-    inst25_fs = fs[:math.ceil(len(fs)/4)]
+    inst25_fs = fs[:math.ceil(len(fs)*0.4)]
     inst25_full = [x for x in files if x.split('.')[0] in inst25_fs]
 
     dup50_full = []
@@ -220,5 +220,5 @@ if __name__ == "__main__":
         exit(-1)
 
     main(args['mode'], args['dataset'], 
-        ratio_train=args['train'], ratio_valid=args['valid'], ratio_test=args['test'],
+        ratio_train=int(args['train']), ratio_valid=int(args['valid']), ratio_test=int(args['test']),
         gen_new = args['gen_new'], partition=args['partition'])
