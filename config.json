@@ -1,7 +1,7 @@
 {
     "input_dir": "./synthesis_input/",
     "save_dir": "./synthesis_output/",
-    "samples": ["front", "back"],
+    "samples": ["back"],
 
     "sample_cfg": {
         "front": {
@@ -10,10 +10,10 @@
             "labels": "front/labels/",
 
             "output_images": "front/images/",
-            "output_labels": "front/labels"
+            "output_labels": "front/labels/"
         },
         "back": {
-            "filelist": "back/files.txt",
+            "filelist": "back/new_files.txt",
             "images": "back/input/",
             "labels": "back/labels/",
 
@@ -21,7 +21,8 @@
             "output_labels": "back/labels"
         }
     },
- 
+
+    "inpaint": false,
     "gan_config": "./files/models/config.json",
     "device": "cpu",
 

@@ -141,14 +141,18 @@ def rotate_img(img, degrees):
     else:
         return img
 
-def rotate_all(image, annotation_json, degrees):
-    wd, hg = annotation_json['width'], annotation_json['height']
+def rotate_all(image, annotation_json, degrees, synthed=False):
+    wd, hg = int(image.shape[1]), int(image.shape[0])
 
     image = rotate_img(image, degrees)
     for i in range(len(annotation_json['regions'])):
         reg = annotation_json['regions'][i]
-        reg['points'] = rotate_bbox(reg['points'], wd, hg, degrees)
- 
+        if not synthed:
+            reg['points'] = rotate_bbox(reg['points'], wd, hg, degrees)
+        else:
+            reg['points'] = rotate_bbox([reg['points'][:2], reg['points'][2:]], wd, hg, degrees)
+            reg['points'] = (*reg['points'][0],*reg['points'][1])
+        
     if degrees in (90, 270):
         annotation_json['width'] = hg
         annotation_json['height'] = wd
@@ -182,15 +186,34 @@ def warp_image_and_annotation(image, annotation_json: list):
         annotation_json['regions'][index]['points'] = coord_numpy
     return image_warped, annotation_json, transform_matrix
 
-def rewarp_image(original, warped, tranformation_matrix):
+def rewarp_image(original, warped, transform_matrix, labels, fname):
     '''
     Reverse the warping operation and stitch rewarped back in original image
     '''
-    rewarped = cv2.warpPerspective(warped, tranformation_matrix,
+    rewarped = cv2.warpPerspective(warped, transform_matrix,
                                    original.shape[1::-1],
                                    flags=cv2.WARP_INVERSE_MAP)
     rewarped_full = np.where(rewarped != (0,0,0), rewarped, original)
-    return rewarped_full
+    invmat = np.linalg.inv(transform_matrix)
+
+    label = []
+    for i in range(len(labels)):
+        bbox = labels[i][1]
+        bbox = np.array([bbox[:2], bbox[2:]], dtype=np.float64)
+        bbox = cv2.perspectiveTransform(np.array([bbox]), invmat)
+        bbox = bbox[0]
+        bbox = (bbox[0][0], bbox[0][1], bbox[1][0], bbox[1][1])
+        label.append({'region_id': i, 'transcription': labels[i][0], 
+                      'tag': labels[i][2], 'points': bbox})
+    
+    new_labels = {
+        'regions': label,
+        'height': rewarped_full.shape[0],
+        'width': rewarped_full.shape[1],
+        'filename': fname
+    }
+
+    return rewarped_full, new_labels
 
 def rewarp_annot(inst):
     new_labels = inst['new_labels']
@@ -203,9 +226,9 @@ def rewarp_annot(inst):
         x1,y1,x2,y2 = bbox[0], bbox[1], bbox[2], bbox[1]
         x3,y3,x4,y4 = bbox[2], bbox[3], bbox[0], bbox[3]
 
-        bbox = []
-        for coord in [[x1, y1, 1], [x2, y2, 1], [x3, y3, 1], [x4, y4, 1]]:
-            bbox.append(list(mat @ coord)[:-1])
+        # bbox = []
+        # for coord in [[x1, y1, 1], [x2, y2, 1], [x3, y3, 1], [x4, y4, 1]]:
+        #     bbox.append(list(mat @ coord)[:-1])
         label.append({'region_id': i, 'transcription': new_labels[i][0], 
                       'tag': new_labels[i][2], 'points': bbox})
 

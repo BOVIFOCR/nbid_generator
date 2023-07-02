@@ -52,17 +52,19 @@ class Anonymizer():
     Anonymizer class to handle front and back RG anonimizations
     '''
     def __init__(self, images_folder, annotations_folder, mode, gan_cfg_file,
-                filelist=None, max_img_size=1920):
+                filelist=None, inpaint=True, max_img_size=1920):
         if mode not in ['front', 'back']:
             print("Mode must be 'front' or 'back': {mode}")
 
         self.images_folder = images_folder
         self.annotations_folder = annotations_folder
         self.mode = mode
+        self.inpaint = inpaint
         self.max_img_size = max_img_size
 
         # Load GAN
-        self.gan, self.mpv = load_gan_model(gan_cfg_file)
+        if inpaint:
+            self.gan, self.mpv = load_gan_model(gan_cfg_file)
 
         # Fields to anonimyze
         self.fields = ['nome', 'filiacao1', 'filiacao2', 'datanasc', 'naturalidade',
@@ -193,7 +195,7 @@ class Anonymizer():
                 continue
             print(image_file, annotation_file)
             print("Index: ", index)
-            ret = self.anonymize_single(image_file, annotation_file, degrees,
+            ret = self.anonymize_single(image_file, annotation_file, degrees, inpaint=self.inpaint,
                                         return_anon=return_anon)
             # return
             if return_anon:
