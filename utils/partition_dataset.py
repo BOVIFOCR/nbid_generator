@@ -126,6 +126,68 @@ def partition_dataset(mode, filenames, ratio_train=60, ratio_valid=20, ratio_tes
 
     return train, valid, test
 
+
+def n_fold(n, filenames):
+    fs = {}
+    for filename in filenames:
+        idx = filename.split('/')[-1].split('_')[0]
+        if idx not in fs:
+            fs[idx] = []
+        fs[idx].append(filename)
+    idxs = sorted(list(fs.keys()))
+    random.shuffle(idxs)
+    n_idxs = len(idxs)
+
+    folds = {}
+
+    down = 0
+    for i in range(1, n):
+        mid = int(n_idxs*i/n)
+        up = int(n_idxs*(i+1)/n)
+
+        folds[i] = {
+            'test': idxs[down:mid],
+            'valid': idxs[mid:up],
+            'train': idxs[:down] + idxs[up:]
+        }
+
+        down = mid
+
+    folds[n] = {
+        'test': idxs[mid:up],
+        'valid': idxs[0:int(n_idxs/n)],
+        'train': idxs[int(n_idxs/n):mid]
+    }
+
+    ret = {}
+    for i in range(1,n+1):
+        train_idxs = folds[i]['train']
+        train_fls = []
+        for idx in train_idxs:
+            train_fls += fs[idx]
+
+        valid_idxs = folds[i]['valid']
+        valid_fls = []
+        for idx in valid_idxs:
+            valid_fls += fs[idx]
+
+        test_idxs = folds[i]['test']
+        test_fls = []
+        for idx in test_idxs:
+            test_fls += fs[idx]
+
+        random.shuffle(train_fls)
+        random.shuffle(valid_fls)
+        random.shuffle(test_fls)
+        
+        ret[i] = {
+            'test': test_fls,
+            'valid': valid_fls,
+            'train': train_fls
+        }
+
+    return ret
+
 def make_prots(files):
 
     fs = set([x.split('.')[0] for x in files])
@@ -158,8 +220,6 @@ def make_prots(files):
         'dup25': dup25_full
     }
 
-
-
 def save_dataset(train, valid, test, other=None, fdir=".", partition=""):
     if partition != "":
         preamb = partition.strip('/') + "_"
@@ -180,9 +240,22 @@ def save_dataset(train, valid, test, other=None, fdir=".", partition=""):
                 for idx, f in enumerate(other[prot]):
                     fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
 
+def save_fold(folds, fdir="."):
+    n = len(folds.keys())
+    for i in folds.keys():
+        with open(f"{fdir}/{n}_fold_{i}_train.csv", "w") as fd:
+            for idx, f in enumerate(folds[i]['train']):
+                fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
+        with open(f"{fdir}/{n}_fold_{i}_valid.csv", "w") as fd:
+            for idx, f in enumerate(folds[i]['valid']):
+                fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
+        with open(f"{fdir}/{n}_fold_{i}_test.csv", "w") as fd:
+            for idx, f in enumerate(folds[i]['test']):
+                fd.write(f"{idx},RG,{f.split('/')[-1]}\n")
 
-def main(mode, fdir, partition, ratio_train=60, ratio_valid=20, ratio_test=20, gen_new=True):
-    if mode not in ['cross', 'std']:
+
+def main(mode, fdir, partition, ratio_train=60, ratio_valid=20, ratio_test=20, fold=5, gen_new=True):
+    if mode not in ['cross', 'std', 'fold']:
         print("Mode must be cross or std.")
         exit(-1)
 
@@ -194,20 +267,30 @@ def main(mode, fdir, partition, ratio_train=60, ratio_valid=20, ratio_test=20, g
         fs = glob(f"{fdir}labels/*.txt")
         gen_new_annotations(fs)
     else:
-        fs = glob(f"{fdir+partition}labels/*.tsv")
+        if partition != "":
+            print(f"{fdir+partition}labels/*.tsv")
+            fs = glob(f"{fdir+partition}labels/*.tsv")
+        else:
+            fs = glob(f"{fdir}/*/labels/*.tsv")
 
-    train, valid, test = partition_dataset(mode, fs, ratio_train, ratio_valid, ratio_test)
-    other = make_prots(train)
+    if mode == 'fold':
+        folds = n_fold(int(fold), fs)
+        save_fold(folds, fdir)
+    else:
+        train, valid, test = partition_dataset(mode, fs, ratio_train, ratio_valid, ratio_test)
+        other = make_prots(train)
 
-    save_dataset(train, valid, test, other, fdir, partition)
+        save_dataset(train, valid, test, other, fdir, partition)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', default='cross', choices=['cross', 'std'])
+    parser.add_argument('--mode', default='cross', choices=['cross', 'std', 'fold'])
     
     parser.add_argument('--train', default=80)
     parser.add_argument("--valid", default=10)
     parser.add_argument("--test", default=10)
+
+    parser.add_argument("--fold", default=5)
 
     parser.add_argument("--dataset", default='./nbid_real/', required=True)
     parser.add_argument("--partition", default="")
@@ -221,4 +304,4 @@ if __name__ == "__main__":
 
     main(args['mode'], args['dataset'], 
         ratio_train=int(args['train']), ratio_valid=int(args['valid']), ratio_test=int(args['test']),
-        gen_new = args['gen_new'], partition=args['partition'])
+        fold = args['fold'], gen_new = args['gen_new'], partition=args['partition'])
